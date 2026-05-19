@@ -1,24 +1,16 @@
 import { useState } from 'react'
 import Landing from './components/Landing'
-import Quiz from './components/Quiz'
-import Result from './components/Result'
+import ChatBot from './components/ChatBot'
 
-type Screen = 'landing' | 'quiz' | 'result'
+type Screen = 'landing' | 'chat'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('landing')
-  const [answers, setAnswers] = useState<Record<string, string>>({})
-
-  function handleComplete(a: Record<string, string>) {
-    setAnswers(a)
-    setScreen('result')
-  }
 
   return (
     <>
-      {screen === 'landing' && <Landing onStart={() => setScreen('quiz')} />}
-      {screen === 'quiz' && <Quiz onComplete={handleComplete} />}
-      {screen === 'result' && <Result answers={answers} onRestart={() => setScreen('landing')} />}
+      {screen === 'landing' && <Landing onStart={() => setScreen('chat')} />}
+      {screen === 'chat' && <ChatBot onBack={() => setScreen('landing')} />}
     </>
   )
 }

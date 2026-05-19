@@ -1,4 +1,3 @@
-import '@fontsource/share-tech-mono'
 import { useEffect, useRef } from 'react'
 
 type Props = {
@@ -72,7 +71,7 @@ export default function Landing({ onStart }: Props) {
             Then follow your personalized learning roadmap.
           </div>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="cp-btn-primary" onClick={onStart}>[ START_QUIZ ]</button>
+            <button className="cp-btn-primary" onClick={onStart}>[ START_NOW ]</button>
             <button className="cp-btn-secondary">[ VIEW_PATHS ]</button>
           </div>
         </div>
