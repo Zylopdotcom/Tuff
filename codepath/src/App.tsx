@@ -1,9 +1,24 @@
-function App() {
+import { useState } from 'react'
+import Landing from './components/Landing'
+import Quiz from './components/Quiz'
+import Result from './components/Result'
+
+type Screen = 'landing' | 'quiz' | 'result'
+
+export default function App() {
+  const [screen, setScreen] = useState<Screen>('landing')
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+
+  function handleComplete(a: Record<string, string>) {
+    setAnswers(a)
+    setScreen('result')
+  }
+
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-green-700">CodePath is alive! 🚀</h1>
-    </div>
+    <>
+      {screen === 'landing' && <Landing onStart={() => setScreen('quiz')} />}
+      {screen === 'quiz' && <Quiz onComplete={handleComplete} />}
+      {screen === 'result' && <Result answers={answers} onRestart={() => setScreen('landing')} />}
+    </>
   )
 }
-
-export default App
