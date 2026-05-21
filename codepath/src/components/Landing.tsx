@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react'
 
 type Props = {
   onStart: () => void
+  onLogin: () => void
 }
 
-export default function Landing({ onStart }: Props) {
+export default function Landing({ onStart, onLogin }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -71,8 +72,8 @@ export default function Landing({ onStart }: Props) {
             Then follow your personalized learning roadmap.
           </div>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="cp-btn-primary" onClick={onStart}>[ START_NOW ]</button>
-            <button className="cp-btn-secondary">[ VIEW_PATHS ]</button>
+          <button className="cp-btn-primary" onClick={onStart}>[ START_NOW ]</button>
+          <button className="cp-btn-secondary" onClick={onLogin}>[ LOGIN ]</button>
           </div>
         </div>
 
