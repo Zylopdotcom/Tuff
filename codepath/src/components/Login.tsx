@@ -5,6 +5,7 @@ type User = {
   username: string
   email: string
   language: string
+  avatar_url?: string
 }
 
 type Props = {
@@ -37,7 +38,8 @@ export default function Login({ onBack, onComplete }: Props) {
       return
     }
 
-    onComplete({ username: data.username, email: data.email, language: data.language })
+    console.log('[Login] supabase user row:', data)
+    onComplete({ username: data.username, email: data.email, language: data.language, avatar_url: data.avatar_url })
     setLoading(false)
   }
 

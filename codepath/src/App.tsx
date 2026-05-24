@@ -12,6 +12,7 @@ type User = {
   username: string
   email: string
   language: string
+  avatar_url?: string
 }
 
 export default function App() {
@@ -42,6 +43,8 @@ export default function App() {
           onBack={() => setScreen('dashboard')}
           onRetakeQuiz={() => { setScreen('chat') }}
           onDeleteAccount={() => { setUser(null); setScreen('landing') }}
+          onUserUpdate={(u) => setUser(u)}
+          onLogout={() => { setUser(null); setScreen('landing') }}
         />
       )}
     </>

@@ -7,6 +7,7 @@ type User = {
   username: string
   email: string
   language: string
+  avatar_url?: string
 }
 
 type Props = {
@@ -14,26 +15,53 @@ type Props = {
   onBack: () => void
   onRetakeQuiz: () => void
   onDeleteAccount: () => void
+  onUserUpdate: (user: User) => void
+  onLogout: () => void
 }
 
-export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount }: Props) {
+export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, onUserUpdate, onLogout }: Props) {
   const { theme, setThemeId, themeId } = useTheme()
   const [activeSection, setActiveSection] = useState('profile')
   const [newUsername, setNewUsername] = useState(user.username)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(user.avatar_url || '')
+  const [uploading, setUploading] = useState(false)
 
   async function handleSaveUsername() {
     if (!newUsername.trim()) return
     setSaving(true)
+    const trimmed = newUsername.trim()
     const { error } = await supabase
       .from('users')
-      .update({ username: newUsername.trim() })
+      .update({ username: trimmed })
       .eq('email', user.email)
     setSaving(false)
+    if (!error) onUserUpdate({ ...user, username: trimmed })
     setSaveMsg(error ? '[ ERROR ] Could not save.' : '[ SAVED ]')
     setTimeout(() => setSaveMsg(''), 2000)
+  }
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.email}_${Date.now()}.${fileExt}`
+    const { data, error } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true })
+    if (!error && data) {
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
+      const url = urlData.publicUrl
+      await supabase.from('users').update({ avatar_url: url }).eq('email', user.email)
+      setAvatarUrl(url)
+      onUserUpdate({ ...user, avatar_url: url })
+    }
+    setUploading(false)
   }
 
   async function handleDeleteAccount() {
@@ -66,7 +94,7 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount }
       `}</style>
 
       {/* Sidebar */}
-      <div style={{ width: '220px', background: t.bgTertiary, borderRight: `1px solid ${t.border}`, padding: '32px 0', flexShrink: 0 }}>
+      <div style={{ width: '220px', background: t.bgTertiary, borderRight: `1px solid ${t.border}`, padding: '32px 0', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '0 20px', marginBottom: '32px' }}>
           <div style={{ color: t.primary, fontSize: '16px', letterSpacing: '3px' }}>
             SETTINGS<span className="cp-cursor" />
@@ -82,18 +110,25 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount }
             {s.label}
           </button>
         ))}
-        <div style={{ position: 'absolute', bottom: '32px', padding: '0 20px' }}>
+        <div style={{ flex: 1 }} />
+        <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button
             onClick={onBack}
-            style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.secondary, padding: '10px 20px', fontFamily: t.font, fontSize: '11px', letterSpacing: '2px', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.secondary, padding: '10px 20px', fontFamily: t.font, fontSize: '11px', letterSpacing: '2px', cursor: 'pointer', width: '100%' }}
           >
             [ BACK ]
+          </button>
+          <button
+            onClick={onLogout}
+            style={{ background: 'transparent', border: `1px solid ${t.primary}`, color: t.primary, padding: '10px 20px', fontFamily: t.font, fontSize: '11px', letterSpacing: '2px', cursor: 'pointer', width: '100%' }}
+          >
+            [ LOGOUT ]
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, padding: '48px' }}>
+      <div style={{ flex: 1, padding: '48px', overflowY: 'auto' }}>
 
         {/* PROFILE */}
         {activeSection === 'profile' && (
@@ -102,6 +137,27 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount }
             <div style={{ color: t.primary, fontSize: '24px', letterSpacing: '2px', marginBottom: '32px' }}>Your Identity</div>
 
             <div style={{ maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+              {/* Avatar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: t.bgSecondary, border: `2px solid ${t.borderSecondary}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.primary, fontSize: '28px', flexShrink: 0 }}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    user.username[0].toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <label style={{ cursor: 'pointer' }}>
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+                    <div style={{ background: 'transparent', border: `1px solid ${t.primary}`, color: t.primary, padding: '10px 20px', fontSize: '11px', letterSpacing: '2px', fontFamily: t.font, cursor: 'pointer' }}>
+                      {uploading ? 'UPLOADING...' : '[ CHANGE PHOTO ]'}
+                    </div>
+                  </label>
+                  <div style={{ color: t.secondary, fontSize: '10px', marginTop: '6px' }}>JPG, PNG — max 2MB</div>
+                </div>
+              </div>
+
               <div>
                 <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '2px', marginBottom: '8px' }}>USERNAME</div>
                 <input className="cp-input" value={newUsername} onChange={e => setNewUsername(e.target.value)} />
