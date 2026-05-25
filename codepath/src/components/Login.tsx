@@ -6,6 +6,9 @@ type User = {
   email: string
   language: string
   avatar_url?: string
+  streak?: number
+  last_login?: string
+  login_dates?: string[]
 }
 
 type Props = {
@@ -39,7 +42,7 @@ export default function Login({ onBack, onComplete }: Props) {
     }
 
     console.log('[Login] supabase user row:', data)
-    onComplete({ username: data.username, email: data.email, language: data.language, avatar_url: data.avatar_url })
+    onComplete({username: data.username,email: data.email,language: data.language,avatar_url: data.avatar_url || '',streak: data.streak || 0,last_login: data.last_login || '',login_dates: data.login_dates || [],})
     setLoading(false)
   }
 

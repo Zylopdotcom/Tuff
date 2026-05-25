@@ -13,12 +13,21 @@ type User = {
   email: string
   language: string
   avatar_url?: string
+  streak?: number
+  last_login?: string
+  login_dates?: string[]
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('landing')
+  const [screen, setScreen] = useState<Screen>(() => {
+    const saved = localStorage.getItem('codepath_user')
+    return saved ? 'dashboard' : 'landing'
+  })
   const [language, setLanguage] = useState('')
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('codepath_user')
+    return saved ? JSON.parse(saved) : null
+  })
 
   function handleChatComplete(lang: string) {
     setLanguage(lang)
@@ -26,8 +35,28 @@ export default function App() {
   }
 
   function handleUserReady(u: User) {
+    localStorage.setItem('codepath_user', JSON.stringify(u))
     setUser(u)
     setScreen('dashboard')
+  }
+
+  function handleUserUpdate(updates: Partial<User>) {
+    if (!user) return
+    const updated = { ...user, ...updates }
+    localStorage.setItem('codepath_user', JSON.stringify(updated))
+    setUser(updated)
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('codepath_user')
+    setUser(null)
+    setScreen('landing')
+  }
+
+  function handleDeleteAccount() {
+    localStorage.removeItem('codepath_user')
+    setUser(null)
+    setScreen('landing')
   }
 
   return (
@@ -41,10 +70,10 @@ export default function App() {
         <Settings
           user={user}
           onBack={() => setScreen('dashboard')}
-          onRetakeQuiz={() => { setScreen('chat') }}
-          onDeleteAccount={() => { setUser(null); setScreen('landing') }}
-          onUserUpdate={(u) => setUser(u)}
-          onLogout={() => { setUser(null); setScreen('landing') }}
+          onRetakeQuiz={() => setScreen('chat')}
+          onDeleteAccount={handleDeleteAccount}
+          onUserUpdate={handleUserUpdate}
+          onLogout={handleLogout}
         />
       )}
     </>
