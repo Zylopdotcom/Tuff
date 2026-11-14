@@ -1,25 +1,15 @@
+// Local stand-in for the Vercel function in api/chat.js, used with `npm run dev`.
+// Run it with `node server.js`; Vite forwards /api requests here (see vite.config.ts).
 import express from 'express'
-import cors from 'cors'
 import dotenv from 'dotenv'
+import chatHandler from './api/chat.js'
 
 dotenv.config()
+// Older local .env files used the VITE_ prefix for the key.
+process.env.ANTHROPIC_API_KEY ??= process.env.VITE_ANTHROPIC_API_KEY
 
 const app = express()
-app.use(cors())
-app.use(express.json())
-
-app.post('/api/chat', async (req, res) => {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.VITE_ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify(req.body),
-  })
-  const data = await response.json()
-  res.json(data)
-})
+app.use(express.json({ limit: '200kb' }))
+app.post('/api/chat', chatHandler)
 
 app.listen(3001, () => console.log('>> PROXY RUNNING ON PORT 3001'))
