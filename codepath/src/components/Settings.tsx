@@ -29,6 +29,8 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(user.avatar_url || '')
   const [uploading, setUploading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   async function handleSaveUsername() {
     if (!newUsername.trim()) return
@@ -66,7 +68,16 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
   }
 
   async function handleDeleteAccount() {
-    await supabase.from('users').delete().eq('email', user.email)
+    setDeleting(true)
+    setDeleteError('')
+    // Deletes go through a database function: the users table has no DELETE policy,
+    // so a direct .delete() is silently blocked by row level security.
+    const { data: deleted, error } = await supabase.rpc('delete_account', { p_email: user.email })
+    setDeleting(false)
+    if (error || !deleted) {
+      setDeleteError('[ ERROR ] Could not delete your account. Try again.')
+      return
+    }
     onDeleteAccount()
   }
 
@@ -265,9 +276,10 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button
                     onClick={handleDeleteAccount}
+                    disabled={deleting}
                     style={{ background: '#ff444422', border: '1px solid #ff4444', color: '#ff4444', padding: '12px 24px', fontFamily: t.font, fontSize: '12px', letterSpacing: '2px', cursor: 'pointer' }}
                   >
-                    [ CONFIRM_DELETE ]
+                    {deleting ? 'DELETING...' : '[ CONFIRM_DELETE ]'}
                   </button>
                   <button
                     onClick={() => setConfirmDelete(false)}
@@ -276,6 +288,9 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
                     [ CANCEL ]
                   </button>
                 </div>
+              )}
+              {deleteError && (
+                <div style={{ color: '#ff4444', fontSize: '12px', letterSpacing: '1px', marginTop: '16px' }}>{deleteError}</div>
               )}
             </div>
           </div>
