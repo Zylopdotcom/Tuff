@@ -122,6 +122,9 @@ Be encouraging. Pass if the student made a genuine attempt and the logic is most
   const editorLang = language.toLowerCase().includes('python') ? 'python'
     : language.toLowerCase().includes('swift') ? 'swift'
     : language.toLowerCase().includes('c#') || language.toLowerCase().includes('unity') ? 'csharp'
+    : language.toLowerCase().includes('kotlin') || language.toLowerCase().includes('android') ? 'kotlin'
+    : language.toLowerCase().includes('c++') ? 'cpp'
+    : language.toLowerCase().includes('linux') ? 'shell'
     : 'javascript'
 
   return (

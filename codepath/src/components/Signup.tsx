@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { resolvePath } from '../data/languages'
 
 type Props = {
   language: string
@@ -49,7 +50,7 @@ export default function Signup({ language, onComplete }: Props) {
           <div style={{ color: '#00fff799', fontSize: '11px', letterSpacing: '4px', marginBottom: '12px' }}>&gt;&gt; ALMOST THERE</div>
           <div style={{ color: '#00fff7', fontSize: '28px', letterSpacing: '3px' }}>CREATE_PROFILE<span className="cp-cursor" /></div>
           <div style={{ color: '#4af8', fontSize: '12px', marginTop: '8px', letterSpacing: '1px' }}>
-            Language selected: <span style={{ color: '#00fff7' }}>[{language.toUpperCase()}]</span>
+            Path selected: <span style={{ color: '#00fff7' }}>[{resolvePath(language).field.toUpperCase()}]</span>
           </div>
         </div>
 

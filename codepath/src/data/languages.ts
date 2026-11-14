@@ -17,6 +17,10 @@ export type Language = {
   name: string
   emoji: string
   desc: string
+  field: string
+  firstLanguage: string
+  builds: string[]
+  careers: string[]
   steps: Step[]
 }
 
@@ -26,6 +30,10 @@ export const languages: Record<string, Language> = {
     name: 'JavaScript',
     emoji: '🌐',
     desc: 'The language of the web — runs in every browser, powers interactive sites and full-stack apps. Huge job market, fast visible results.',
+    field: 'Web Development',
+    firstLanguage: 'JavaScript',
+    builds: ['Websites and web apps', 'Online stores and dashboards', 'Full products with a frontend and a backend'],
+    careers: ['Frontend developer', 'Full-stack developer', 'Freelance web developer'],
     steps: [
       {
         name: 'HTML & CSS basics',
@@ -93,6 +101,10 @@ export const languages: Record<string, Language> = {
     name: 'Python',
     emoji: '🐍',
     desc: 'Clear, readable syntax perfect for data science, AI/ML, scripting, and automation. The most popular first language for a reason.',
+    field: 'Data & AI',
+    firstLanguage: 'Python',
+    builds: ['Data analysis and charts', 'Machine learning models', 'Scripts that automate boring work'],
+    careers: ['Data analyst', 'Data scientist', 'Machine learning engineer'],
     steps: [
       {
         name: 'Python basics',
@@ -160,6 +172,10 @@ export const languages: Record<string, Language> = {
     name: 'Swift',
     emoji: '📱',
     desc: "Apple's modern language for iOS and macOS apps. Clean syntax, powerful tooling with Xcode, and direct path to the App Store.",
+    field: 'iOS App Development',
+    firstLanguage: 'Swift',
+    builds: ['iPhone and iPad apps', 'Apps published on the App Store', 'Apple Watch and Mac apps'],
+    careers: ['iOS developer', 'Mobile app developer', 'Indie app maker'],
     steps: [
       {
         name: 'Swift basics',
@@ -222,6 +238,10 @@ export const languages: Record<string, Language> = {
     name: 'C# / Unity',
     emoji: '🎮',
     desc: 'The go-to for game dev with Unity. Also widely used for enterprise software. Structured, powerful, great job market in gaming.',
+    field: 'Game Development',
+    firstLanguage: 'C#',
+    builds: ['2D and 3D games in Unity', 'Game mechanics, levels and UI', 'Games published on itch.io'],
+    careers: ['Gameplay programmer', 'Unity developer', 'Indie game developer'],
     steps: [
       {
         name: 'C# basics',
@@ -283,6 +303,217 @@ export const languages: Record<string, Language> = {
       },
     ],
   },
+  kotlin: {
+    id: 'kotlin',
+    name: 'Kotlin / Android',
+    emoji: '🤖',
+    desc: "Google's recommended language for Android apps. Modern, concise, and it runs on the phones most of the world uses. You only need a normal laptop to start.",
+    field: 'Android App Development',
+    firstLanguage: 'Kotlin',
+    builds: ['Android phone and tablet apps', 'Apps published on Google Play', 'Apps that talk to online services'],
+    careers: ['Android developer', 'Mobile app developer', 'Freelance app developer'],
+    steps: [
+      {
+        name: 'Kotlin basics',
+        detail: 'Variables, functions, classes',
+        resources: ['Kotlin Koans', 'kotlinlang.org'],
+        levels: [
+          { id: 1, title: 'Variables', concept: 'Learn val, var and basic types', challenge: 'Declare your name, age, and whether you are a student, then print them' },
+          { id: 2, title: 'Functions', concept: 'Learn how to write and call functions', challenge: 'Write a function that takes two numbers and returns the larger one' },
+          { id: 3, title: 'Conditions & loops', concept: 'Learn if, when, and for loops', challenge: 'Print the numbers 1 to 20, marking each as even or odd' },
+          { id: 4, title: 'Null safety', concept: 'Learn how Kotlin handles missing values', challenge: 'Write a function that safely returns the length of a nullable string' },
+          { id: 5, title: 'Classes', concept: 'Learn classes and data classes', challenge: 'Create a data class for a contact with a name and phone number' },
+          { id: 6, title: 'Lists & maps', concept: 'Learn collections and lambdas', challenge: 'Filter a list of numbers to keep only those above 10' },
+        ]
+      },
+      {
+        name: 'Android Studio & your first screen',
+        detail: 'Jetpack Compose basics',
+        resources: ['Android Basics with Compose', 'developer.android.com'],
+        levels: [
+          { id: 1, title: 'Android Studio setup', concept: 'Learn the tool used to build Android apps', challenge: 'Create a new project and run it on the emulator' },
+          { id: 2, title: 'Composables', concept: 'Learn how screens are built from small functions', challenge: 'Show a greeting with your name on screen' },
+          { id: 3, title: 'Layouts', concept: 'Learn Column, Row and Box', challenge: 'Build a profile card with a picture, name, and short bio' },
+          { id: 4, title: 'Buttons & state', concept: 'Learn how the screen reacts to taps', challenge: 'Build a counter that goes up each time a button is tapped' },
+          { id: 5, title: 'Lists', concept: 'Learn how to show scrolling lists', challenge: 'Show a scrolling list of 20 items' },
+        ]
+      },
+      {
+        name: 'App architecture',
+        detail: 'Navigation, ViewModel, saving data',
+        resources: ['Android Developers guides', 'Philipp Lackner'],
+        levels: [
+          { id: 1, title: 'Navigation', concept: 'Learn how to move between screens', challenge: 'Build an app with a list screen and a detail screen' },
+          { id: 2, title: 'ViewModel', concept: 'Learn where app logic and state live', challenge: 'Move your counter state into a ViewModel' },
+          { id: 3, title: 'Saving data', concept: 'Learn how to store data on the phone with Room', challenge: 'Save a list of notes so they survive closing the app' },
+          { id: 4, title: 'Internet data', concept: 'Learn how to load data from an API', challenge: 'Fetch and display a list of items from a public API' },
+        ]
+      },
+      {
+        name: 'Build a real app',
+        detail: 'A complete app from idea to finish',
+        resources: ['Material Design', 'GitHub'],
+        levels: [
+          { id: 1, title: 'Plan the app', concept: 'Learn how to turn an idea into screens and features', challenge: 'Sketch the screens for a notes or habit tracker app' },
+          { id: 2, title: 'Build the core feature', concept: 'Learn to build the main feature first', challenge: 'Make adding, editing and deleting items work' },
+          { id: 3, title: 'Polish the design', concept: 'Learn Material Design themes and spacing', challenge: 'Add a color theme, icons, and a dark mode' },
+          { id: 4, title: 'Test on a real phone', concept: 'Learn how to run your app on a device', challenge: 'Install your app on an Android phone and fix what feels wrong' },
+        ]
+      },
+      {
+        name: 'Publish on Google Play',
+        detail: 'Portfolio + first users',
+        resources: ['Google Play Console', 'GitHub'],
+        levels: [
+          { id: 1, title: 'Prepare a release', concept: 'Learn how release builds and signing work', challenge: 'Generate a signed release build of your app' },
+          { id: 2, title: 'Store listing', concept: 'Learn what a store page needs', challenge: 'Write a description and take screenshots for your app' },
+          { id: 3, title: 'Share your code', concept: 'Learn how to present a project on GitHub', challenge: 'Push your app to GitHub with a README and screenshots' },
+        ]
+      },
+    ],
+  },
+  cybersecurity: {
+    id: 'cybersecurity',
+    name: 'Cybersecurity',
+    emoji: '🛡️',
+    desc: 'Learn how systems are attacked so you can defend them. You start with Linux, networking and Python, then practice legally on labs and capture-the-flag challenges.',
+    field: 'Cybersecurity',
+    firstLanguage: 'Python + Linux',
+    builds: ['Your own security tools and scripts', 'A home lab for safe, legal practice', 'Write-ups of solved capture-the-flag challenges'],
+    careers: ['Security analyst (SOC)', 'Penetration tester', 'Security engineer'],
+    steps: [
+      {
+        name: 'Linux & the command line',
+        detail: 'Files, permissions, processes',
+        resources: ['OverTheWire Bandit', 'Linux Journey'],
+        levels: [
+          { id: 1, title: 'The terminal', concept: 'Learn how to move around a system with commands', challenge: 'List, create, move and delete files using only the terminal' },
+          { id: 2, title: 'Files & permissions', concept: 'Learn who can read, write and run a file', challenge: 'Make a file readable only by its owner' },
+          { id: 3, title: 'Users & processes', concept: 'Learn how users and running programs work', challenge: 'Find a running process and stop it' },
+          { id: 4, title: 'Searching & pipes', concept: 'Learn grep and how to chain commands', challenge: 'Find every line containing "error" in a log file and count them' },
+          { id: 5, title: 'Bash scripts', concept: 'Learn how to save commands into a script', challenge: 'Write a script that backs up a folder' },
+        ]
+      },
+      {
+        name: 'Networking fundamentals',
+        detail: 'IP, ports, DNS, HTTP',
+        resources: ['Professor Messer', 'Cisco Networking Basics'],
+        levels: [
+          { id: 1, title: 'How the internet works', concept: 'Learn IP addresses, routers and packets', challenge: 'Find your own IP address and trace the route to a website' },
+          { id: 2, title: 'Ports & protocols', concept: 'Learn what ports are and the common protocols', challenge: 'List which ports are used by HTTP, HTTPS, SSH and DNS' },
+          { id: 3, title: 'DNS', concept: 'Learn how names turn into addresses', challenge: 'Look up the DNS records for a domain' },
+          { id: 4, title: 'HTTP', concept: 'Learn requests, responses and status codes', challenge: 'Send an HTTP request from the terminal and read the headers' },
+          { id: 5, title: 'Reading traffic', concept: 'Learn how to inspect packets with Wireshark', challenge: 'Capture your own traffic and find a DNS request in it' },
+        ]
+      },
+      {
+        name: 'Python for security',
+        detail: 'Automate and build small tools',
+        resources: ['Automate the Boring Stuff', 'Python docs'],
+        levels: [
+          { id: 1, title: 'Python basics', concept: 'Learn variables, loops and functions', challenge: 'Write a function that checks whether a password is at least 12 characters' },
+          { id: 2, title: 'Files & text', concept: 'Learn how to read and search files', challenge: 'Read a log file and print every failed login line' },
+          { id: 3, title: 'Hashing', concept: 'Learn what hashes are and why passwords are hashed', challenge: 'Compute the SHA-256 hash of a string' },
+          { id: 4, title: 'Web requests', concept: 'Learn how to send HTTP requests from code', challenge: 'Fetch a web page and print its response headers' },
+          { id: 5, title: 'Sockets', concept: 'Learn how programs talk over a network', challenge: 'Write a script that checks whether a port is open on your own machine' },
+        ]
+      },
+      {
+        name: 'Security foundations',
+        detail: 'Common attacks and defenses',
+        resources: ['TryHackMe', 'OWASP Top 10'],
+        levels: [
+          { id: 1, title: 'Thinking like an attacker', concept: 'Learn the CIA triad and how attacks are planned', challenge: 'List three ways a login page could be attacked and a defense for each' },
+          { id: 2, title: 'Web vulnerabilities', concept: 'Learn SQL injection and XSS and how to prevent them', challenge: 'Explain why a given login query is vulnerable and rewrite it safely' },
+          { id: 3, title: 'Passwords & authentication', concept: 'Learn how accounts are protected and broken', challenge: 'Explain why salting makes stolen password hashes harder to crack' },
+          { id: 4, title: 'Encryption basics', concept: 'Learn symmetric and public-key encryption', challenge: 'Encrypt and decrypt a message with a key in Python' },
+          { id: 5, title: 'Law & ethics', concept: 'Learn what you are allowed to test and why permission matters', challenge: 'Write the rules you would follow before testing any system' },
+        ]
+      },
+      {
+        name: 'Practice labs & CTFs',
+        detail: 'Hands-on, legal practice',
+        resources: ['TryHackMe', 'picoCTF', 'Hack The Box'],
+        levels: [
+          { id: 1, title: 'Set up a home lab', concept: 'Learn how to practice safely in virtual machines', challenge: 'Install a Linux virtual machine to use as your lab' },
+          { id: 2, title: 'Your first CTF', concept: 'Learn how capture-the-flag challenges work', challenge: 'Solve three beginner challenges on picoCTF' },
+          { id: 3, title: 'Write-ups', concept: 'Learn how to document what you found', challenge: 'Write a short report explaining how you solved one challenge' },
+          { id: 4, title: 'Share your work', concept: 'Learn how to show your skills to employers', challenge: 'Publish your scripts and write-ups on GitHub' },
+        ]
+      },
+    ],
+  },
+  cpp: {
+    id: 'cpp',
+    name: 'C++',
+    emoji: '⚙️',
+    desc: 'The language close to the machine: robots, electronics, game engines and anything that must be fast. Harder at first, but it teaches you how computers really work.',
+    field: 'Systems & Embedded',
+    firstLanguage: 'C++',
+    builds: ['Arduino and robotics projects', 'Fast programs and simple game engines', 'Solutions to competitive programming problems'],
+    careers: ['Embedded systems engineer', 'Systems programmer', 'Robotics or game-engine developer'],
+    steps: [
+      {
+        name: 'C++ basics',
+        detail: 'Variables, loops, functions',
+        resources: ['learncpp.com', 'cppreference'],
+        levels: [
+          { id: 1, title: 'Your first program', concept: 'Learn how a C++ program is written, compiled and run', challenge: 'Print your name to the screen' },
+          { id: 2, title: 'Variables & types', concept: 'Learn int, double, char, bool and string', challenge: 'Store your age and height and print them in a sentence' },
+          { id: 3, title: 'Conditions', concept: 'Learn if and else', challenge: 'Read a number and print whether it is positive, negative or zero' },
+          { id: 4, title: 'Loops', concept: 'Learn for and while loops', challenge: 'Print the multiplication table of 7' },
+          { id: 5, title: 'Functions', concept: 'Learn how to write and call functions', challenge: 'Write a function that returns the largest of three numbers' },
+          { id: 6, title: 'Arrays & vectors', concept: 'Learn how to store many values', challenge: 'Read five numbers into a vector and print their average' },
+        ]
+      },
+      {
+        name: 'Memory & pointers',
+        detail: 'How the computer stores data',
+        resources: ['learncpp.com', 'The Cherno'],
+        levels: [
+          { id: 1, title: 'Memory', concept: 'Learn how variables live in memory', challenge: 'Print the memory address of a variable' },
+          { id: 2, title: 'Pointers', concept: 'Learn what a pointer is and how to use one', challenge: 'Change the value of a variable through a pointer' },
+          { id: 3, title: 'References', concept: 'Learn references and passing by reference', challenge: 'Write a function that swaps two numbers' },
+          { id: 4, title: 'Stack & heap', concept: 'Learn new, delete and smart pointers', challenge: 'Create an object with a smart pointer and explain when it is freed' },
+        ]
+      },
+      {
+        name: 'Object-oriented C++',
+        detail: 'Classes and the standard library',
+        resources: ['learncpp.com', 'cppreference'],
+        levels: [
+          { id: 1, title: 'Classes', concept: 'Learn how to group data and functions', challenge: 'Create a BankAccount class with deposit and withdraw' },
+          { id: 2, title: 'Constructors', concept: 'Learn how objects are created and cleaned up', challenge: 'Add a constructor that sets the starting balance' },
+          { id: 3, title: 'Inheritance', concept: 'Learn how classes build on other classes', challenge: 'Create a Shape class with Circle and Square subclasses' },
+          { id: 4, title: 'The standard library', concept: 'Learn vector, map and algorithms', challenge: 'Count how many times each word appears in a sentence' },
+        ]
+      },
+      {
+        name: 'Problem solving & algorithms',
+        detail: 'Think like a programmer',
+        resources: ['Codeforces', 'CSES Problem Set'],
+        levels: [
+          { id: 1, title: 'Searching', concept: 'Learn linear and binary search', challenge: 'Implement binary search on a sorted vector' },
+          { id: 2, title: 'Sorting', concept: 'Learn how sorting works and how to use std::sort', challenge: 'Sort a list of students by grade' },
+          { id: 3, title: 'Big-O', concept: 'Learn how to measure how fast code is', challenge: 'Explain why binary search is faster than checking every item' },
+          { id: 4, title: 'Recursion', concept: 'Learn functions that call themselves', challenge: 'Write a recursive function for factorial' },
+          { id: 5, title: 'Practice problems', concept: 'Learn how to approach a new problem', challenge: 'Solve three beginner problems on Codeforces' },
+        ]
+      },
+      {
+        name: 'Build a hardware or systems project',
+        detail: 'Arduino, a small game, or a tool',
+        resources: ['Arduino docs', 'GitHub'],
+        levels: [
+          { id: 1, title: 'Pick a project', concept: 'Learn how to scope a first project', challenge: 'Choose between an Arduino gadget, a terminal game, or a command-line tool' },
+          { id: 2, title: 'Build the core', concept: 'Learn to get the simplest version working first', challenge: 'Make the smallest working version of your project' },
+          { id: 3, title: 'Organize your code', concept: 'Learn header files and splitting code into files', challenge: 'Split your project into at least two source files' },
+          { id: 4, title: 'Share on GitHub', concept: 'Learn how to present a project', challenge: 'Push your project with a README explaining how to build it' },
+        ]
+      },
+    ],
+  },
+
 }
 
 export function recommend(goal: string, math: string): string {
@@ -291,4 +522,17 @@ export function recommend(goal: string, math: string): string {
   if (goal === 'games') return 'csharp'
   if (math === 'high') return 'python'
   return 'javascript'
+}
+
+const legacyKeys: Record<string, string> = {
+  JavaScript: 'javascript',
+  Python: 'python',
+  Swift: 'swift',
+  'C#': 'csharp',
+}
+
+// Accounts created before fields existed stored the language name ("JavaScript");
+// newer ones store the path id ("cybersecurity").
+export function resolvePath(stored: string): Language {
+  return languages[legacyKeys[stored] ?? stored] ?? languages.javascript
 }
