@@ -6,7 +6,8 @@
 
 const MODEL = 'claude-haiku-4-5-20251001'
 const MAX_OUTPUT_TOKENS = 1000
-const MAX_MESSAGES = 30
+// EduBot asks up to 7 questions, but people can keep discussing after the verdict.
+const MAX_MESSAGES = 50
 const MAX_MESSAGE_CHARS = 12000
 const MAX_SYSTEM_CHARS = 12000
 const MAX_TOTAL_CHARS = 60000
@@ -36,7 +37,8 @@ function validate(body) {
     total += m.content.length
   }
   if (total > MAX_TOTAL_CHARS) return 'Request too large'
-  if (messages[0].role !== 'user') return 'The first message must come from the user'
+  // Note: EduBot's history starts with its own greeting, so the first message
+  // can be from the assistant. Anthropic accepts that; don't reject it here.
 
   return null
 }
