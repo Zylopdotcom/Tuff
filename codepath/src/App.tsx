@@ -5,6 +5,7 @@ import Signup from './components/Signup'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import Settings from './components/Settings'
+import { supabase } from './lib/supabase'
 
 type Screen = 'landing' | 'chat' | 'signup' | 'login' | 'dashboard' | 'settings'
 
@@ -29,7 +30,17 @@ export default function App() {
     return saved ? JSON.parse(saved) : null
   })
 
-  function handleChatComplete(lang: string) {
+  async function handleChatComplete(lang: string) {
+    // An existing user talking to EduBot again is changing path, not signing up.
+    if (user) {
+      const { error } = await supabase.from('users').update({ language: lang }).eq('email', user.email)
+      if (error) console.error('Failed to save new path:', error.message)
+      const updated = { ...user, language: lang }
+      localStorage.setItem('codepath_user', JSON.stringify(updated))
+      setUser(updated)
+      setScreen('dashboard')
+      return
+    }
     setLanguage(lang)
     setScreen('signup')
   }
@@ -62,7 +73,7 @@ export default function App() {
   return (
     <>
       {screen === 'landing' && <Landing onStart={() => setScreen('chat')} onLogin={() => setScreen('login')} />}
-      {screen === 'chat' && <ChatBot onBack={() => setScreen('landing')} onComplete={handleChatComplete} />}
+      {screen === 'chat' && <ChatBot onBack={() => setScreen(user ? 'settings' : 'landing')} onComplete={handleChatComplete} />}
       {screen === 'signup' && <Signup language={language} onComplete={handleUserReady} />}
       {screen === 'login' && <Login onBack={() => setScreen('landing')} onComplete={handleUserReady} />}
       {screen === 'dashboard' && user && <Dashboard user={user} onSettings={() => setScreen('settings')} />}

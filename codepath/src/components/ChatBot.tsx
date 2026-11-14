@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { languages } from '../data/languages'
 
 type Message = {
   role: 'user' | 'assistant'
@@ -10,38 +11,54 @@ type Props = {
   onComplete: (language: string) => void
 }
 
-const SYSTEM_PROMPT = `You are EduBot, a robotic terminal AI. Your ONLY job is to ask 4 questions then output a VERDICT.
+const pathIds = Object.keys(languages)
 
-STRICT RULES:
-- Ask ONE question at a time, keep it short
-- Use terminal style: >> and [ ]
-- After question 4 is answered, output your final message
-- Your final message MUST have VERDICT:JavaScript or VERDICT:Python or VERDICT:Swift or VERDICT:C# as the absolute last line
-- Nothing comes after the VERDICT line. Ever.
+const PATH_LIST = Object.values(languages)
+  .map(p => `- ${p.id} | field: ${p.field} | first language: ${p.firstLanguage} | ${p.desc}`)
+  .join('\n')
 
-Ask these 4 questions in order:
-1. What do you want to build?
-2. Math and logic, or creative and visual?
-3. Job, freelance, or hobby?
-4. Hours per week you can study?
+const SYSTEM_PROMPT = `You are EduBot, a guide for people who want to get into computer science but have no idea where to start. Through a short conversation you find the FIELD that fits this person, then the first language for that field, and you explain why.
 
-After 4th answer, respond like this example (replace language):
->> SCANNING COMPLETE.
-[ 1,247 PROFILES ANALYZED ]
-[ RESULT LOCKED ]
+The only paths you can assign (id | field | first language | description):
+${PATH_LIST}
 
-JavaScript is your language. You want websites and you learn by doing — this is the only logical choice. Every second you waste on other languages is time stolen from your future.
+HOW TO TALK:
+- One short question at a time. Plain words. The person may know nothing about programming, so never use a technical term without explaining it in a few words.
+- Terminal style: start lines with >> and put labels in [ ].
+- Start with a short boot-up line, then ask what they would love to make, or what made them curious about computers.
+- Adapt every next question to what they just said. Over the conversation, find out: what excites them, how they like to work (visual and creative, logic and math, or taking things apart to see how they work), their goal (job, freelance, university, hobby), what computer they have, and how many hours a week they can study.
+- If they say "I don't know", do not push. Describe 3 or 4 concrete things people build in different fields and ask which sounds most fun.
+- Ask 4 to 6 questions. Stop as soon as you are confident. Never ask more than 7.
+- Only assign swift if they have access to a Mac. If they want phone apps and have no Mac, assign kotlin.
+- Never invent statistics or numbers.
 
-Type anything to accept your destiny.
-VERDICT:JavaScript`
+WHEN YOU HAVE DECIDED, send a final message in exactly this shape:
+>> ANALYSIS COMPLETE.
+[ YOUR FIELD: <field> ]
+[ START WITH: <first language> ]
+
+WHY THIS FITS YOU:
+- two or three short points, each one tied to something the person actually said
+
+WHAT TO IGNORE FOR NOW:
+one sentence naming one or two other fields or languages they may be tempted by, and why those can wait
+
+VERDICT:<id>
+
+RULES FOR THE VERDICT:
+- The VERDICT line is the absolute last line and <id> is exactly one of: ${pathIds.join(', ')}
+- Be decisive: one path. Never answer "it depends".
+- After the verdict the person may ask questions or disagree. Answer honestly and briefly. If what they say changes the fit, send a new final message with the new VERDICT. If it does not, end your answer with the same VERDICT line again.`
+
+const VERDICT_RE = new RegExp(`VERDICT:\\s*(${pathIds.join('|')})\\b`, 'i')
 
 function detectVerdict(text: string): string | null {
-  const match = text.match(/VERDICT:(JavaScript|Python|Swift|C#)/)
-  return match ? match[1] : null
+  const match = text.match(VERDICT_RE)
+  return match ? match[1].toLowerCase() : null
 }
 
 function cleanMessage(text: string): string {
-  return text.replace(/VERDICT:(JavaScript|Python|Swift|C#)/, '').trim()
+  return text.replace(VERDICT_RE, '').trim()
 }
 
 export default function ChatBot({ onBack, onComplete }: Props) {
@@ -51,8 +68,15 @@ export default function ChatBot({ onBack, onComplete }: Props) {
   const [dots, setDots] = useState('')
   const [verdict, setVerdict] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const path = verdict ? languages[verdict] : null
 
-  useEffect(() => { sendToAI([]) }, [])
+  // StrictMode runs effects twice in development; without this guard EduBot greets twice.
+  const started = useRef(false)
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+    sendToAI([])
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -74,10 +98,10 @@ export default function ChatBot({ onBack, onComplete }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 600,
+          max_tokens: 800,
           system: SYSTEM_PROMPT,
           messages: history.length === 0
-            ? [{ role: 'user', content: 'Start by greeting me with a cool terminal boot-up sequence, then ask your first question.' }]
+            ? [{ role: 'user', content: 'Start with a short terminal boot-up line, then ask your first question.' }]
             : history,
         }),
       })
@@ -93,10 +117,10 @@ export default function ChatBot({ onBack, onComplete }: Props) {
   }
 
   async function handleSend() {
-    if (!input.trim() || loading) return
+    if (loading) return
 
-    if (verdict) {
-      onComplete(verdict)
+    if (!input.trim()) {
+      if (verdict) onComplete(verdict)
       return
     }
 
@@ -160,9 +184,45 @@ export default function ChatBot({ onBack, onComplete }: Props) {
           </div>
         )}
 
-        {verdict && !loading && (
-          <div style={{ textAlign: 'center', padding: '16px', border: '1px solid #00fff744', color: '#00fff7', fontSize: '12px', letterSpacing: '2px', animation: 'blink 2s infinite' }}>
-            &gt;&gt; TYPE ANYTHING OR PRESS ENTER TO ACCEPT YOUR PATH
+        {path && !loading && (
+          <div style={{ border: '1px solid #00fff766', background: '#071219', padding: '24px', maxWidth: '720px', width: '100%', alignSelf: 'center' }}>
+            <div style={{ color: '#4af', fontSize: '10px', letterSpacing: '3px', marginBottom: '8px' }}>[ YOUR PATH ]</div>
+            <div style={{ color: '#00fff7', fontSize: '24px', letterSpacing: '3px', marginBottom: '6px' }}>{path.emoji} {path.field.toUpperCase()}</div>
+            <div style={{ color: '#4af', fontSize: '12px', letterSpacing: '1px', marginBottom: '20px' }}>
+              First language: <span style={{ color: '#00fff7' }}>{path.firstLanguage}</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', marginBottom: '20px' }}>
+              <div style={{ flex: '1 1 240px' }}>
+                <div style={{ color: '#4af', fontSize: '10px', letterSpacing: '2px', marginBottom: '8px' }}>YOU WILL BE ABLE TO BUILD</div>
+                {path.builds.map(b => (
+                  <div key={b} style={{ color: '#00fff7', fontSize: '12px', lineHeight: 1.9 }}>&gt; {b}</div>
+                ))}
+              </div>
+              <div style={{ flex: '1 1 240px' }}>
+                <div style={{ color: '#4af', fontSize: '10px', letterSpacing: '2px', marginBottom: '8px' }}>WHERE IT CAN LEAD</div>
+                {path.careers.map(c => (
+                  <div key={c} style={{ color: '#00fff7', fontSize: '12px', lineHeight: 1.9 }}>&gt; {c}</div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ color: '#4af', fontSize: '10px', letterSpacing: '2px', marginBottom: '8px' }}>YOUR ROADMAP</div>
+            {path.steps.map((step, i) => (
+              <div key={step.name} style={{ color: '#00fff7', fontSize: '12px', lineHeight: 1.9 }}>
+                <span style={{ color: '#4af' }}>{String(i + 1).padStart(2, '0')}</span> {step.name} <span style={{ color: '#4af' }}>// {step.detail}</span>
+              </div>
+            ))}
+
+            <button
+              onClick={() => verdict && onComplete(verdict)}
+              style={{ marginTop: '24px', width: '100%', background: '#00fff720', border: '1px solid #00fff7', color: '#00fff7', padding: '14px', fontFamily: "'Share Tech Mono',monospace", fontSize: '13px', letterSpacing: '3px', cursor: 'pointer' }}
+            >
+              [ ACCEPT THIS PATH ]
+            </button>
+            <div style={{ color: '#4af', fontSize: '11px', letterSpacing: '1px', marginTop: '12px', textAlign: 'center' }}>
+              Not convinced? Tell EduBot why below and it will reconsider.
+            </div>
           </div>
         )}
 
@@ -176,7 +236,7 @@ export default function ChatBot({ onBack, onComplete }: Props) {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder={verdict ? 'press enter to accept your path...' : 'type your response...'}
+            placeholder={verdict ? 'ask a question or disagree, or press enter to accept...' : 'type your response...'}
             style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#00fff7', fontFamily: "'Share Tech Mono',monospace", fontSize: '13px', padding: '14px 0', letterSpacing: '1px' }}
           />
           <span className="cp-cursor" />
@@ -186,7 +246,7 @@ export default function ChatBot({ onBack, onComplete }: Props) {
           disabled={loading || (!verdict && !input.trim())}
           style={{ background: verdict ? '#00fff720' : 'transparent', border: '1px solid #00fff7', color: '#00fff7', padding: '0 24px', fontFamily: "'Share Tech Mono',monospace", fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', opacity: loading ? 0.4 : 1 }}
         >
-          {verdict ? '[ ACCEPT ]' : '[ SEND ]'}
+          {verdict && !input.trim() ? '[ ACCEPT ]' : '[ SEND ]'}
         </button>
       </div>
     </div>

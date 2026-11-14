@@ -1,6 +1,6 @@
 import StepView from './StepView'
 import { useState, useEffect } from 'react'
-import { languages } from '../data/languages'
+import { resolvePath } from '../data/languages'
 import { useTheme } from '../lib/ThemeContext'
 import { supabase } from '../lib/supabase'
 
@@ -19,13 +19,6 @@ type Props = {
   onSettings: () => void
 }
 
-const langKey: Record<string, string> = {
-  JavaScript: 'javascript',
-  Python: 'python',
-  Swift: 'swift',
-  'C#': 'csharp',
-}
-
 function getToday() {
   return new Date().toISOString().split('T')[0]
 }
@@ -42,8 +35,7 @@ function getLast90Days() {
 
 export default function Dashboard({ user, onSettings }: Props) {
   const { theme: t } = useTheme()
-  const key = langKey[user.language] || 'javascript'
-  const lang = languages[key]
+  const lang = resolvePath(user.language)
   const [activeNav, setActiveNav] = useState('home')
   const avatarUrl = user.avatar_url || ''
   const [streak, setStreak] = useState(user.streak || 0)
@@ -126,7 +118,8 @@ export default function Dashboard({ user, onSettings }: Props) {
             <div style={{ background: t.bgSecondary, border: `1px solid ${t.border}`, padding: '32px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: '16px', right: '24px', fontSize: '48px', opacity: 0.3 }}>{lang.emoji}</div>
               <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '8px' }}>[ ASSIGNED PATH ]</div>
-              <div style={{ color: t.primary, fontSize: '28px', letterSpacing: '3px', marginBottom: '8px' }}>{lang.name.toUpperCase()}</div>
+              <div style={{ color: t.primary, fontSize: '28px', letterSpacing: '3px', marginBottom: '8px' }}>{lang.field.toUpperCase()}</div>
+              <div style={{ color: t.secondary, fontSize: '11px', letterSpacing: '2px', marginBottom: '8px' }}>FIRST LANGUAGE: <span style={{ color: t.primary }}>{lang.firstLanguage.toUpperCase()}</span></div>
               <div style={{ color: t.secondary, fontSize: '12px', lineHeight: 1.8, maxWidth: '600px', marginBottom: '20px' }}>{lang.desc}</div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <div onClick={() => setActiveNav('roadmap')} style={{ background: t.border, border: `1px solid ${t.borderSecondary}`, color: t.primary, padding: '10px 20px', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer' }}>[ CONTINUE PATH ]</div>

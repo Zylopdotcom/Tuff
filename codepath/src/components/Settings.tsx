@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTheme } from '../lib/ThemeContext'
 import { themes } from '../lib/themes'
 import { supabase } from '../lib/supabase'
+import { resolvePath } from '../data/languages'
 
 type User = {
   username: string
@@ -187,15 +188,16 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
         {activeSection === 'path' && (
           <div>
             <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '8px' }}>&gt;&gt; MY PATH</div>
-            <div style={{ color: t.primary, fontSize: '24px', letterSpacing: '2px', marginBottom: '32px' }}>Your Language</div>
+            <div style={{ color: t.primary, fontSize: '24px', letterSpacing: '2px', marginBottom: '32px' }}>Your Path</div>
 
             <div style={{ background: t.bgSecondary, border: `1px solid ${t.border}`, padding: '24px', maxWidth: '480px', marginBottom: '24px' }}>
-              <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '2px', marginBottom: '8px' }}>ASSIGNED LANGUAGE</div>
-              <div style={{ color: t.primary, fontSize: '28px', letterSpacing: '2px' }}>{user.language}</div>
+              <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '2px', marginBottom: '8px' }}>ASSIGNED PATH</div>
+              <div style={{ color: t.primary, fontSize: '28px', letterSpacing: '2px' }}>{resolvePath(user.language).field}</div>
+              <div style={{ color: t.secondary, fontSize: '11px', letterSpacing: '2px', marginTop: '8px' }}>FIRST LANGUAGE: {resolvePath(user.language).firstLanguage}</div>
             </div>
 
             <div style={{ color: t.secondary, fontSize: '12px', lineHeight: 1.8, marginBottom: '24px', maxWidth: '480px' }}>
-              Want a different language? You can retake the EduBot quiz. Your current progress will be reset.
+              Want a different path? You can talk to EduBot again. Your current progress will be reset.
             </div>
 
             <button
