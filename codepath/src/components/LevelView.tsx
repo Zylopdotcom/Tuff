@@ -9,23 +9,86 @@ type Props = {
   totalLevels: number
   stepName: string
   language: string
+  // Topics the learner has already gone through, oldest first.
+  covered: string[]
   onBack: () => void
   onComplete: () => void
 }
 
 type Phase = 'loading' | 'learn' | 'quiz' | 'code' | 'reviewing' | 'passed' | 'failed'
 
-export default function LevelView({ level, levelIndex, totalLevels, stepName, language, onBack, onComplete }: Props) {
+type ErrorExplanation = { meaning: string; cause: string; fix: string }
+
+const MAX_HINTS = 3
+// Keeps requests well inside the AI proxy's size limits.
+const MAX_CODE_CHARS = 6000
+const MAX_ERROR_CHARS = 3000
+
+// The model sometimes wraps JSON in code fences or adds a sentence around it.
+function parseJson<T>(raw: string): T {
+  const cleaned = raw.replace(/```json|```/g, '').trim()
+  const start = cleaned.indexOf('{')
+  const end = cleaned.lastIndexOf('}')
+  if (start === -1 || end === -1) throw new Error('No JSON object in reply')
+  return JSON.parse(cleaned.slice(start, end + 1)) as T
+}
+
+function clip(text: string, max: number) {
+  return text.length > max ? text.slice(0, max) + '\n[...truncated]' : text
+}
+
+// Step names say more than the path language for some steps, for example the
+// Linux step of the cybersecurity path or the HTML step of the web path.
+function editorLanguage(stepName: string, language: string) {
+  const step = stepName.toLowerCase()
+  if (step.includes('linux') || step.includes('bash') || step.includes('command line')) return 'shell'
+  if (step.includes('html')) return 'html'
+  const lang = language.toLowerCase()
+  if (lang.includes('python')) return 'python'
+  if (lang.includes('swift')) return 'swift'
+  if (lang.includes('c#')) return 'csharp'
+  if (lang.includes('kotlin')) return 'kotlin'
+  if (lang.includes('c++')) return 'cpp'
+  return 'javascript'
+}
+
+// Starter text must be a valid comment in the editor's language, or running it fails.
+function starterCode(challenge: string, editorLang: string) {
+  if (editorLang === 'python' || editorLang === 'shell') return `# ${challenge}\n# Write your solution here\n\n`
+  if (editorLang === 'html') return `<!-- ${challenge} -->\n<!-- Write your solution here -->\n\n`
+  return `// ${challenge}\n// Write your solution here\n\n`
+}
+
+const HINT_RULES: Record<number, string> = {
+  1: 'Hint 1: ask one guiding question or give a nudge about what to think about first. No code at all.',
+  2: 'Hint 2: name the concept or approach to use and outline the steps in plain words. You may show general syntax, but not code for this challenge.',
+  3: 'Hint 3: show a short example that solves a DIFFERENT but similar problem, then explain in one sentence how it relates to this challenge.',
+}
+
+export default function LevelView({ level, levelIndex, totalLevels, stepName, language, covered, onBack, onComplete }: Props) {
   const { theme: t } = useTheme()
   const [phase, setPhase] = useState<Phase>('loading')
   const [lesson, setLesson] = useState('')
   const [quiz, setQuiz] = useState<{ question: string; options: string[]; correct: number } | null>(null)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
-  const [code, setCode] = useState(`// ${level.challenge}\n// Write your solution here\n\n`)
+  const [code, setCode] = useState(() => starterCode(level.challenge, editorLanguage(stepName, language)))
   const [feedback, setFeedback] = useState('')
+  const [hints, setHints] = useState<string[]>([])
+  const [hintLoading, setHintLoading] = useState(false)
+  const [showErrorPanel, setShowErrorPanel] = useState(false)
+  const [errorText, setErrorText] = useState('')
+  const [errorExplanation, setErrorExplanation] = useState<ErrorExplanation | null>(null)
+  const [explaining, setExplaining] = useState(false)
+  const [assistError, setAssistError] = useState('')
   const [dots, setDots] = useState('')
 
-  const cacheKey = `codepath_level_${language}_${stepName}_${level.id}`
+  // v2: lessons now depend on the challenge and on what was covered before.
+  const cacheKey = `codepath_level_v2_${language}_${stepName}_${level.id}`
+
+  const coveredText = covered.length ? covered.join(', ') : 'nothing yet, this is their first level'
+  const learnerContext = `Topics the learner has already covered: ${coveredText}.
+The current level teaches: "${level.title}" (${level.concept}).
+Only expect the learner to know these topics and what this level teaches; never require anything from later levels.`
 
   useEffect(() => {
     const cached = localStorage.getItem(cacheKey)
@@ -40,10 +103,10 @@ export default function LevelView({ level, levelIndex, totalLevels, stepName, la
   }, [])
 
   useEffect(() => {
-    if (phase !== 'loading' && phase !== 'reviewing') return
+    if (phase !== 'loading' && phase !== 'reviewing' && !hintLoading && !explaining) return
     const interval = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 400)
     return () => clearInterval(interval)
-  }, [phase])
+  }, [phase, hintLoading, explaining])
 
   async function callAI(prompt: string, maxTokens = 300) {
     const response = await fetch('/api/chat', {
@@ -52,7 +115,7 @@ export default function LevelView({ level, levelIndex, totalLevels, stepName, la
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: maxTokens,
-        system: `You are EduBot, a coding teacher. You teach ${language}. Be concise and use terminal-style formatting. Always respond in the exact JSON format requested.`,
+        system: `You are EduBot, a coding teacher for complete beginners. You teach ${language}; the current step is "${stepName}". Be concise and use terminal-style formatting. Always respond in the exact JSON format requested.`,
         messages: [{ role: 'user', content: prompt }],
       }),
     })
@@ -64,7 +127,11 @@ export default function LevelView({ level, levelIndex, totalLevels, stepName, la
     setPhase('loading')
     try {
       const raw = await callAI(`
-Teach the concept: "${level.title}" for ${language}.
+Teach the concept: "${level.title}" (step: "${stepName}") for ${language}.
+${learnerContext}
+After the lesson the learner must solve this coding challenge: "${level.challenge}"
+The lesson must teach everything the challenge needs, using only what they already covered plus this level's concept. Do not solve the challenge in the lesson.
+The quiz question must be about this lesson; put any code in it on separate lines using \\n.
 
 Respond ONLY with this JSON (no markdown, no backticks):
 {
@@ -76,7 +143,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
 
 The correct field is the index (0-3) of the right answer.`, 400)
 
-      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      const parsed = parseJson<{ lesson: string; question: string; options: string[]; correct: number }>(raw)
       const lessonData = {
         lesson: parsed.lesson,
         quiz: { question: parsed.question, options: parsed.options, correct: parsed.correct }
@@ -96,10 +163,11 @@ The correct field is the index (0-3) of the right answer.`, 400)
     try {
       const raw = await callAI(`
 The student is learning "${level.title}" in ${language}.
+${learnerContext}
 Challenge: "${level.challenge}"
 Student's code:
 \`\`\`
-${code}
+${clip(code, MAX_CODE_CHARS)}
 \`\`\`
 
 Respond ONLY with this JSON (no markdown, no backticks):
@@ -110,7 +178,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
 
 Be encouraging. Pass if the student made a genuine attempt and the logic is mostly correct.`, 300)
 
-      const parsed = JSON.parse(raw)
+      const parsed = parseJson<{ passed: boolean; feedback: string }>(raw)
       setFeedback(parsed.feedback)
       setPhase(parsed.passed ? 'passed' : 'failed')
     } catch {
@@ -119,13 +187,82 @@ Be encouraging. Pass if the student made a genuine attempt and the logic is most
     }
   }
 
-  const editorLang = language.toLowerCase().includes('python') ? 'python'
-    : language.toLowerCase().includes('swift') ? 'swift'
-    : language.toLowerCase().includes('c#') || language.toLowerCase().includes('unity') ? 'csharp'
-    : language.toLowerCase().includes('kotlin') || language.toLowerCase().includes('android') ? 'kotlin'
-    : language.toLowerCase().includes('c++') ? 'cpp'
-    : language.toLowerCase().includes('linux') ? 'shell'
-    : 'javascript'
+  // Progressive hints: each one reveals a bit more, and none gives the solution.
+  async function getHint() {
+    if (hintLoading || hints.length >= MAX_HINTS) return
+    const n = hints.length + 1
+    setHintLoading(true)
+    setAssistError('')
+    try {
+      const previous = hints.length
+        ? hints.map((h, i) => `${i + 1}. ${h}`).join('\n')
+        : 'none'
+      const raw = await callAI(`
+The student is learning "${level.title}" in ${language}.
+${learnerContext}
+Challenge: "${level.challenge}"
+Their current code:
+\`\`\`
+${clip(code, MAX_CODE_CHARS)}
+\`\`\`
+Hints already given:
+${previous}
+
+Give hint ${n} of ${MAX_HINTS}. ${HINT_RULES[n]}
+Rules for every hint:
+- Never write the solution to this challenge and never complete or rewrite their code.
+- Build on their current code and on the earlier hints; do not repeat them.
+- If their code already solves the challenge, say so and suggest submitting it.
+- 2-4 short sentences in terminal style.
+
+Respond ONLY with this JSON (no markdown, no backticks):
+{"hint": "..."}`, 350)
+      const parsed = parseJson<{ hint: string }>(raw)
+      setHints(prev => [...prev, parsed.hint])
+    } catch {
+      setAssistError('[ ERROR ] Could not get a hint. Try again.')
+    }
+    setHintLoading(false)
+  }
+
+  // Error explainer: turns an error message into plain language for a beginner.
+  async function explainError() {
+    if (explaining || !errorText.trim()) return
+    setExplaining(true)
+    setAssistError('')
+    setErrorExplanation(null)
+    try {
+      const raw = await callAI(`
+The student is learning "${level.title}" in ${language}.
+${learnerContext}
+Challenge: "${level.challenge}"
+Their code:
+\`\`\`
+${clip(code, MAX_CODE_CHARS)}
+\`\`\`
+They got this error message:
+\`\`\`
+${clip(errorText.trim(), MAX_ERROR_CHARS)}
+\`\`\`
+
+Explain it for a complete beginner, avoiding jargon.
+- Do not write the full corrected solution; describe the fix in steps.
+- If the text is not an error message, say so in "meaning" and leave "cause" and "fix" empty.
+
+Respond ONLY with this JSON (no markdown, no backticks):
+{
+  "meaning": "what the error means, in 1-2 plain sentences",
+  "cause": "the most likely cause in their code, pointing to the line if possible, in 1-2 sentences",
+  "fix": "how to fix it, in 1-3 sentences, without writing the solution"
+}`, 450)
+      setErrorExplanation(parseJson<ErrorExplanation>(raw))
+    } catch {
+      setAssistError('[ ERROR ] Could not explain the error. Try again.')
+    }
+    setExplaining(false)
+  }
+
+  const editorLang = editorLanguage(stepName, language)
 
   return (
     <div style={{ background: t.bg, minHeight: '100vh', fontFamily: t.font, display: 'flex', flexDirection: 'column' }}>
@@ -189,7 +326,7 @@ Be encouraging. Pass if the student made a genuine attempt and the logic is most
         {phase === 'quiz' && quiz && (
           <div style={{ maxWidth: '600px', animation: 'fadeIn 0.4s ease' }}>
             <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '16px' }}>[ KNOWLEDGE CHECK ]</div>
-            <div style={{ color: t.primary, fontSize: '16px', letterSpacing: '1px', marginBottom: '28px', lineHeight: 1.6 }}>{quiz.question}</div>
+            <div style={{ color: t.primary, fontSize: '16px', letterSpacing: '1px', marginBottom: '28px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{quiz.question}</div>
             {quiz.options.map((opt, i) => (
               <button
                 key={i}
@@ -238,12 +375,78 @@ Be encouraging. Pass if the student made a genuine attempt and the logic is most
                 }}
               />
             </div>
-            <button
-              onClick={reviewCode}
-              style={{ background: t.border, border: `1px solid ${t.primary}`, color: t.primary, padding: '14px 32px', fontFamily: t.font, fontSize: '13px', letterSpacing: '3px', cursor: 'pointer' }}
-            >
-              [ SUBMIT FOR REVIEW ] →
-            </button>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
+              <button
+                onClick={reviewCode}
+                style={{ background: t.border, border: `1px solid ${t.primary}`, color: t.primary, padding: '14px 32px', fontFamily: t.font, fontSize: '13px', letterSpacing: '3px', cursor: 'pointer' }}
+              >
+                [ SUBMIT FOR REVIEW ] →
+              </button>
+              <button
+                onClick={getHint}
+                disabled={hintLoading || hints.length >= MAX_HINTS}
+                style={{ background: 'transparent', border: `1px solid ${t.secondary}`, color: t.secondary, padding: '14px 24px', fontFamily: t.font, fontSize: '12px', letterSpacing: '2px', cursor: hints.length >= MAX_HINTS ? 'not-allowed' : 'pointer', opacity: hintLoading || hints.length >= MAX_HINTS ? 0.5 : 1 }}
+              >
+                {hintLoading ? `THINKING${dots}` : hints.length >= MAX_HINTS ? '[ NO HINTS LEFT ]' : `[ HINT ${hints.length + 1}/${MAX_HINTS} ]`}
+              </button>
+              <button
+                onClick={() => setShowErrorPanel(v => !v)}
+                style={{ background: 'transparent', border: `1px solid ${t.secondary}`, color: t.secondary, padding: '14px 24px', fontFamily: t.font, fontSize: '12px', letterSpacing: '2px', cursor: 'pointer' }}
+              >
+                {showErrorPanel ? '[ HIDE ERROR HELP ]' : '[ EXPLAIN AN ERROR ]'}
+              </button>
+            </div>
+
+            {assistError && (
+              <div style={{ color: '#ff4444', fontSize: '12px', letterSpacing: '1px', marginBottom: '16px' }}>{assistError}</div>
+            )}
+
+            {hints.length > 0 && (
+              <div style={{ maxWidth: '760px', marginBottom: '24px' }}>
+                <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '8px' }}>[ HINTS ]</div>
+                {hints.map((h, i) => (
+                  <div key={i} style={{ background: t.bgSecondary, border: `1px solid ${t.border}`, padding: '14px 18px', marginBottom: '8px', animation: 'fadeIn 0.3s ease' }}>
+                    <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '2px', marginBottom: '6px' }}>HINT {i + 1}</div>
+                    <div style={{ color: t.primary, fontSize: '12px', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{h}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {showErrorPanel && (
+              <div style={{ maxWidth: '760px', marginBottom: '24px', animation: 'fadeIn 0.3s ease' }}>
+                <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '8px' }}>[ ERROR EXPLAINER ]</div>
+                <div style={{ color: t.secondary, fontSize: '11px', lineHeight: 1.7, marginBottom: '8px' }}>
+                  Ran your code somewhere and got an error? Paste the message here and EduBot will explain it in plain words.
+                </div>
+                <textarea
+                  value={errorText}
+                  onChange={e => setErrorText(e.target.value)}
+                  placeholder="e.g. TypeError: Cannot read properties of undefined (reading 'length')"
+                  rows={4}
+                  style={{ width: '100%', boxSizing: 'border-box', background: t.bgSecondary, border: `1px solid ${t.border}`, color: t.primary, padding: '12px', fontFamily: t.font, fontSize: '12px', resize: 'vertical', outline: 'none' }}
+                />
+                <button
+                  onClick={explainError}
+                  disabled={explaining || !errorText.trim()}
+                  style={{ marginTop: '8px', background: 'transparent', border: `1px solid ${t.primary}`, color: t.primary, padding: '10px 20px', fontFamily: t.font, fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', opacity: explaining || !errorText.trim() ? 0.5 : 1 }}
+                >
+                  {explaining ? `EXPLAINING${dots}` : '[ EXPLAIN ]'}
+                </button>
+                {errorExplanation && (
+                  <div style={{ background: t.bgSecondary, border: `1px solid ${t.border}`, padding: '16px 18px', marginTop: '12px' }}>
+                    {([['WHAT IT MEANS', errorExplanation.meaning], ['LIKELY CAUSE', errorExplanation.cause], ['HOW TO FIX IT', errorExplanation.fix]] as const)
+                      .filter(([, text]) => text && text.trim())
+                      .map(([label, text]) => (
+                        <div key={label} style={{ marginBottom: '10px' }}>
+                          <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '2px', marginBottom: '4px' }}>{label}</div>
+                          <div style={{ color: t.primary, fontSize: '12px', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{text}</div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

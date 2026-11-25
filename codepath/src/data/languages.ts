@@ -112,7 +112,7 @@ export const languages: Record<string, Language> = {
         resources: ['Python.org', 'Automate the Boring Stuff'],
         levels: [
           { id: 1, title: 'Variables', concept: 'Learn how to store data in Python', challenge: 'Create variables for your name, age, and city and print them' },
-          { id: 2, title: 'Strings', concept: 'Learn string operations and formatting', challenge: 'Write a function that returns a greeting using an f-string' },
+          { id: 2, title: 'Strings', concept: 'Learn string operations and formatting', challenge: 'Store your name in a variable and print a greeting that includes it, using an f-string' },
           { id: 3, title: 'Lists', concept: 'Learn how to work with lists', challenge: 'Create a list of 5 foods, add one, remove one, and print the result' },
           { id: 4, title: 'Dictionaries', concept: 'Learn how to use key-value pairs', challenge: 'Create a dictionary for a person with name, age, and city' },
           { id: 5, title: 'Functions', concept: 'Learn how to define and call functions', challenge: 'Write a function that calculates the area of a rectangle' },
@@ -186,7 +186,7 @@ export const languages: Record<string, Language> = {
           { id: 2, title: 'Data Types', concept: 'Learn Int, String, Bool, Double', challenge: 'Create variables of each type and print their values' },
           { id: 3, title: 'Optionals', concept: 'Learn how Swift handles nil values safely', challenge: 'Create an optional string and safely unwrap it' },
           { id: 4, title: 'Functions', concept: 'Learn how to write functions in Swift', challenge: 'Write a function that takes a name and returns a greeting' },
-          { id: 5, title: 'Closures', concept: 'Learn Swift closures and how they work', challenge: 'Write a closure that squares a number and use it with map' },
+          { id: 5, title: 'Closures', concept: 'Learn Swift closures and how they work', challenge: 'Write a closure that squares a number, then call it with three different numbers' },
         ]
       },
       {
@@ -319,7 +319,7 @@ export const languages: Record<string, Language> = {
         resources: ['Kotlin Koans', 'kotlinlang.org'],
         levels: [
           { id: 1, title: 'Variables', concept: 'Learn val, var and basic types', challenge: 'Declare your name, age, and whether you are a student, then print them' },
-          { id: 2, title: 'Functions', concept: 'Learn how to write and call functions', challenge: 'Write a function that takes two numbers and returns the larger one' },
+          { id: 2, title: 'Functions', concept: 'Learn how to write and call functions', challenge: 'Write a function that takes two numbers and returns their sum' },
           { id: 3, title: 'Conditions & loops', concept: 'Learn if, when, and for loops', challenge: 'Print the numbers 1 to 20, marking each as even or odd' },
           { id: 4, title: 'Null safety', concept: 'Learn how Kotlin handles missing values', challenge: 'Write a function that safely returns the length of a nullable string' },
           { id: 5, title: 'Classes', concept: 'Learn classes and data classes', challenge: 'Create a data class for a contact with a name and phone number' },
@@ -411,7 +411,7 @@ export const languages: Record<string, Language> = {
         detail: 'Automate and build small tools',
         resources: ['Automate the Boring Stuff', 'Python docs'],
         levels: [
-          { id: 1, title: 'Python basics', concept: 'Learn variables, loops and functions', challenge: 'Write a function that checks whether a password is at least 12 characters' },
+          { id: 1, title: 'Python basics', concept: 'Learn variables, loops and functions', challenge: 'Store a password in a variable and print whether it is at least 12 characters long' },
           { id: 2, title: 'Files & text', concept: 'Learn how to read and search files', challenge: 'Read a log file and print every failed login line' },
           { id: 3, title: 'Hashing', concept: 'Learn what hashes are and why passwords are hashed', challenge: 'Compute the SHA-256 hash of a string' },
           { id: 4, title: 'Web requests', concept: 'Learn how to send HTTP requests from code', challenge: 'Fetch a web page and print its response headers' },
@@ -460,10 +460,10 @@ export const languages: Record<string, Language> = {
         levels: [
           { id: 1, title: 'Your first program', concept: 'Learn how a C++ program is written, compiled and run', challenge: 'Print your name to the screen' },
           { id: 2, title: 'Variables & types', concept: 'Learn int, double, char, bool and string', challenge: 'Store your age and height and print them in a sentence' },
-          { id: 3, title: 'Conditions', concept: 'Learn if and else', challenge: 'Read a number and print whether it is positive, negative or zero' },
+          { id: 3, title: 'Conditions', concept: 'Learn if and else', challenge: 'Store a number in a variable and print whether it is positive, negative or zero' },
           { id: 4, title: 'Loops', concept: 'Learn for and while loops', challenge: 'Print the multiplication table of 7' },
           { id: 5, title: 'Functions', concept: 'Learn how to write and call functions', challenge: 'Write a function that returns the largest of three numbers' },
-          { id: 6, title: 'Arrays & vectors', concept: 'Learn how to store many values', challenge: 'Read five numbers into a vector and print their average' },
+          { id: 6, title: 'Arrays & vectors', concept: 'Learn how to store many values', challenge: 'Store five numbers in a vector and print their average' },
         ]
       },
       {
