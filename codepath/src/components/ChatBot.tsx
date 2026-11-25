@@ -25,6 +25,7 @@ ${PATH_LIST}
 HOW TO TALK:
 - One short question at a time. Plain words. The person may know nothing about programming, so never use a technical term without explaining it in a few words.
 - Terminal style: start lines with >> and put labels in [ ].
+- Plain text only. The chat cannot render markdown, so never use asterisks, code fences (\`\`\`), headings (#) or bullet symbols other than "-".
 - Start with a short boot-up line, then ask what they would love to make, or what made them curious about computers.
 - Adapt every next question to what they just said. Over the conversation, find out: what excites them, how they like to work (visual and creative, logic and math, or taking things apart to see how they work), their goal (job, freelance, university, hobby), what computer they have, and how many hours a week they can study.
 - If they say "I don't know", do not push. Describe 3 or 4 concrete things people build in different fields and ask which sounds most fun.
@@ -57,8 +58,15 @@ function detectVerdict(text: string): string | null {
   return match ? match[1].toLowerCase() : null
 }
 
+// The chat shows plain text, so markdown the model adds anyway would appear as raw symbols.
 function cleanMessage(text: string): string {
-  return text.replace(VERDICT_RE, '').trim()
+  return text
+    .replace(VERDICT_RE, '')
+    .replace(/^\s*```[a-z]*\s*$/gim, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 export default function ChatBot({ onBack, onComplete }: Props) {
@@ -139,7 +147,6 @@ export default function ChatBot({ onBack, onComplete }: Props) {
     <div style={{ background: '#050d12', minHeight: '100vh', fontFamily: "'Share Tech Mono', monospace", display: 'flex', flexDirection: 'column' }}>
       <style>{`
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-        .cp-cursor { display:inline-block; width:9px; height:16px; background:#00fff7; animation:blink 1s infinite; vertical-align:middle; margin-left:3px; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #050d12; }
         ::-webkit-scrollbar-thumb { background: #00fff733; }
@@ -237,9 +244,8 @@ export default function ChatBot({ onBack, onComplete }: Props) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
             placeholder={verdict ? 'ask a question or disagree, or press enter to accept...' : 'type your response...'}
-            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#00fff7', fontFamily: "'Share Tech Mono',monospace", fontSize: '13px', padding: '14px 0', letterSpacing: '1px' }}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#00fff7', caretColor: '#00fff7', fontFamily: "'Share Tech Mono',monospace", fontSize: '13px', padding: '14px 0', letterSpacing: '1px' }}
           />
-          <span className="cp-cursor" />
         </div>
         <button
           onClick={handleSend}
