@@ -6,18 +6,8 @@ import { useTheme } from '../lib/ThemeContext'
 import { supabase } from '../lib/supabase'
 import { BADGES, badgeById, streakBadges, interviewBadges } from '../lib/badges'
 import { levelKey, pathProgress, logEvent } from '../lib/progress'
+import type { User } from '../lib/profile'
 
-type User = {
-  username: string
-  email: string
-  language: string
-  avatar_url?: string
-  streak?: number
-  last_login?: string
-  login_dates?: string[]
-  badges?: string[]
-  completed_levels?: string[]
-}
 
 type Props = {
   user: User
@@ -62,7 +52,7 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
     setBadges(next)
     setToasts(prev => [...prev, ...fresh])
     onUserUpdate({ badges: next })
-    const { error } = await supabase.from('users').update({ badges: next }).eq('email', user.email)
+    const { error } = await supabase.from('users').update({ badges: next }).eq('id', user.id)
     if (error) console.error('Failed to save badges:', error.message)
   }
 
@@ -79,7 +69,7 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
       completedRef.current = next
       setCompleted(next)
       onUserUpdate({ completed_levels: next })
-      const { error } = await supabase.from('users').update({ completed_levels: next }).eq('email', user.email)
+      const { error } = await supabase.from('users').update({ completed_levels: next }).eq('id', user.id)
       if (error) console.error('Failed to save progress:', error.message)
     }
     const stepDone = step.levels.every(l => completedRef.current.includes(levelKey(lang.id, stepIndex, l.id)))
@@ -109,7 +99,7 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
     const newDates = [...currentDates, today]
     let newStreak = 1
     if (currentDates.includes(yesterdayStr)) newStreak = (user.streak || 0) + 1
-    await supabase.from('users').update({ streak: newStreak, last_login: today, login_dates: newDates }).eq('email', user.email)
+    await supabase.from('users').update({ streak: newStreak, last_login: today, login_dates: newDates }).eq('id', user.id)
     setStreak(newStreak)
     setLoginDates(newDates)
     award(streakBadges(newStreak))
@@ -321,7 +311,7 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
       earlierSteps={lang.steps.slice(0, activeStep).map(st => st.name)}
       completedLevels={lang.steps[activeStep].levels.flatMap((l, i) => completed.includes(levelKey(lang.id, activeStep, l.id)) ? [i] : [])}
       onLevelComplete={i => { markComplete(activeStep, i) }}
-      onEvent={(i, e) => { logEvent(user.email, lang.id, { ...e, stepIndex: activeStep, levelId: lang.steps[activeStep].levels[i].id }) }}
+      onEvent={(i, e) => { logEvent(user.id, lang.id, { ...e, stepIndex: activeStep, levelId: lang.steps[activeStep].levels[i].id }) }}
       onBack={() => setActiveStep(null)}
     />
   ) : (
@@ -429,7 +419,7 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
         {/* INTERVIEW VIEW */}
         {activeNav === 'interview' && <Interview path={lang} onFinish={(pct, level) => {
           award(interviewBadges(pct))
-          logEvent(user.email, lang.id, { kind: 'interview', detail: { score: pct, level } })
+          logEvent(user.id, lang.id, { kind: 'interview', detail: { score: pct, level } })
         }} />}
 
         {/* RESOURCES VIEW */}
