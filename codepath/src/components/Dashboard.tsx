@@ -240,6 +240,7 @@ export default function Dashboard({ user, onSettings }: Props) {
     <StepView
       step={lang.steps[activeStep]}
       stepIndex={activeStep}
+      language={lang.firstLanguage}
       onBack={() => setActiveStep(null)}
     />
   ) : (

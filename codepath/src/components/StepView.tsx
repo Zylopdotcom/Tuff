@@ -6,10 +6,11 @@ import LevelView from './LevelView'
 type Props = {
   step: Step
   stepIndex: number
+  language: string
   onBack: () => void
 }
 
-export default function StepView({ step, stepIndex, onBack }: Props) {
+export default function StepView({ step, stepIndex, language, onBack }: Props) {
   const { theme: t } = useTheme()
   const [activeLevel, setActiveLevel] = useState<number | null>(null)
   const [completedLevels, setCompletedLevels] = useState<number[]>([])
@@ -21,7 +22,7 @@ export default function StepView({ step, stepIndex, onBack }: Props) {
         levelIndex={activeLevel}
         totalLevels={step.levels.length}
         stepName={step.name}
-        language={step.name}
+        language={language}
         onBack={() => setActiveLevel(null)}
         onComplete={() => {
           setCompletedLevels(prev => [...prev, activeLevel])
