@@ -18,6 +18,7 @@ type User = {
   last_login?: string
   login_dates?: string[]
   badges?: string[]
+  completed_levels?: string[]
 }
 
 export default function App() {
@@ -52,11 +53,14 @@ export default function App() {
     setScreen('dashboard')
   }
 
+  // Builds on the latest user, so several updates in a row (e.g. progress, then a badge) all keep their changes.
   function handleUserUpdate(updates: Partial<User>) {
-    if (!user) return
-    const updated = { ...user, ...updates }
-    localStorage.setItem('codepath_user', JSON.stringify(updated))
-    setUser(updated)
+    setUser(prev => {
+      if (!prev) return prev
+      const updated = { ...prev, ...updates }
+      localStorage.setItem('codepath_user', JSON.stringify(updated))
+      return updated
+    })
   }
 
   function handleLogout() {

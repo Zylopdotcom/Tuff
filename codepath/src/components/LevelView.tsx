@@ -12,6 +12,8 @@ type Props = {
   language: string
   // Topics the learner has already gone through, oldest first.
   covered: string[]
+  // Reports learning attempts (quiz answers, reviews, hints) for progress tracking.
+  onEvent?: (e: { kind: 'quiz' | 'review' | 'hint' | 'error_explained'; correct?: boolean; detail?: Record<string, unknown> }) => void
   onBack: () => void
   onComplete: () => void
 }
@@ -53,7 +55,7 @@ const HINT_RULES: Record<number, string> = {
   3: 'Hint 3: show a short example that solves a DIFFERENT but similar problem, then explain in one sentence how it relates to this challenge.',
 }
 
-export default function LevelView({ level, levelIndex, totalLevels, stepName, language, covered, onBack, onComplete }: Props) {
+export default function LevelView({ level, levelIndex, totalLevels, stepName, language, covered, onEvent, onBack, onComplete }: Props) {
   const { theme: t } = useTheme()
   const [phase, setPhase] = useState<Phase>('loading')
   const [lesson, setLesson] = useState('')
@@ -167,6 +169,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
 Be encouraging. Pass if the student made a genuine attempt and the logic is mostly correct.`, 300)
 
       const parsed = parseJson<{ passed: boolean; feedback: string }>(raw)
+      onEvent?.({ kind: 'review', correct: !!parsed.passed, detail: { hintsUsed: hints.length } })
       setFeedback(parsed.feedback)
       setPhase(parsed.passed ? 'passed' : 'failed')
     } catch {
@@ -207,6 +210,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
 {"hint": "..."}`, 350)
       const parsed = parseJson<{ hint: string }>(raw)
       setHints(prev => [...prev, parsed.hint])
+      onEvent?.({ kind: 'hint', detail: { hintNumber: n } })
     } catch {
       setAssistError('[ ERROR ] Could not get a hint. Try again.')
     }
@@ -244,6 +248,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
   "fix": "how to fix it, in 1-3 sentences, without writing the solution"
 }`, 450)
       setErrorExplanation(parseJson<ErrorExplanation>(raw))
+      onEvent?.({ kind: 'error_explained' })
     } catch {
       setAssistError('[ ERROR ] Could not explain the error. Try again.')
     }
@@ -322,6 +327,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
                 onClick={() => {
                   if (selectedAnswer !== null) return
                   setSelectedAnswer(i)
+                  onEvent?.({ kind: 'quiz', correct: i === quiz.correct, detail: { answer: i } })
                   if (i === quiz.correct) setTimeout(() => setPhase('code'), 1200)
                 }}
               >

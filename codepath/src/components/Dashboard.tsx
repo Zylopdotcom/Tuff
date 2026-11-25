@@ -5,6 +5,7 @@ import { resolvePath } from '../data/languages'
 import { useTheme } from '../lib/ThemeContext'
 import { supabase } from '../lib/supabase'
 import { BADGES, badgeById, streakBadges, interviewBadges } from '../lib/badges'
+import { levelKey, pathProgress, logEvent } from '../lib/progress'
 
 type User = {
   username: string
@@ -15,6 +16,7 @@ type User = {
   last_login?: string
   login_dates?: string[]
   badges?: string[]
+  completed_levels?: string[]
 }
 
 type Props = {
@@ -62,6 +64,26 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
     onUserUpdate({ badges: next })
     const { error } = await supabase.from('users').update({ badges: next }).eq('email', user.email)
     if (error) console.error('Failed to save badges:', error.message)
+  }
+
+  const [completed, setCompleted] = useState<string[]>(user.completed_levels || [])
+  const completedRef = useRef<string[]>(user.completed_levels || [])
+  const progress = pathProgress(lang, completed)
+
+  // Saves a completed level and awards the level badges.
+  async function markComplete(stepIndex: number, levelIndex: number) {
+    const step = lang.steps[stepIndex]
+    const key = levelKey(lang.id, stepIndex, step.levels[levelIndex].id)
+    if (!completedRef.current.includes(key)) {
+      const next = [...completedRef.current, key]
+      completedRef.current = next
+      setCompleted(next)
+      onUserUpdate({ completed_levels: next })
+      const { error } = await supabase.from('users').update({ completed_levels: next }).eq('email', user.email)
+      if (error) console.error('Failed to save progress:', error.message)
+    }
+    const stepDone = step.levels.every(l => completedRef.current.includes(levelKey(lang.id, stepIndex, l.id)))
+    award(['first-level', ...(stepDone ? ['step-cleared'] : [])])
   }
 
   // Show each unlock pop-up for a few seconds, one at a time.
@@ -186,9 +208,9 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
               {[
                 { label: 'TOTAL STEPS', value: String(lang.steps.length).padStart(2, '0') },
-                { label: 'COMPLETED', value: '00' },
-                { label: 'IN PROGRESS', value: '01' },
-                { label: 'EST. WEEKS', value: '12' },
+                { label: 'COMPLETED', value: String(progress.completedSteps).padStart(2, '0') },
+                { label: 'IN PROGRESS', value: String(progress.inProgressSteps).padStart(2, '0') },
+                { label: 'LEVELS DONE', value: `${progress.doneLevels}/${progress.totalLevels}` },
               ].map(s => (
                 <div className="stat-card" key={s.label}>
                   <div style={{ color: t.secondary, fontSize: '9px', letterSpacing: '2px', marginBottom: '8px' }}>{s.label}</div>
@@ -207,18 +229,18 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
               <div>
                 <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '16px' }}>[ NEXT STEPS ]</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {lang.steps.slice(0, 2).map((step, i) => (
+                  {lang.steps.map((step, i) => ({ step, i })).filter(({ i }) => progress.statuses[i] !== 'DONE').slice(0, 2).map(({ step, i }) => (
                     <div className="step-card" key={i}>
                       <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        <div style={{ width: '32px', height: '32px', border: `1px solid ${i === 0 ? t.primary : t.border}`, color: i === 0 ? t.primary : t.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
+                        <div style={{ width: '32px', height: '32px', border: `1px solid ${progress.statuses[i] === 'IN PROGRESS' ? t.primary : t.border}`, color: progress.statuses[i] === 'IN PROGRESS' ? t.primary : t.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
                           {String(i + 1).padStart(2, '0')}
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ color: t.primary, fontSize: '13px', letterSpacing: '1px' }}>{step.name}</div>
                           <div style={{ color: t.secondary, fontSize: '11px' }}>{step.detail}</div>
                         </div>
-                        <div style={{ fontSize: '10px', color: i === 0 ? t.primary : t.secondary, border: `1px solid ${i === 0 ? t.borderSecondary : t.border}`, padding: '2px 8px' }}>
-                          {i === 0 ? 'IN PROGRESS' : 'PENDING'}
+                        <div style={{ fontSize: '10px', color: progress.statuses[i] === 'IN PROGRESS' ? t.primary : t.secondary, border: `1px solid ${progress.statuses[i] === 'IN PROGRESS' ? t.borderSecondary : t.border}`, padding: '2px 8px' }}>
+                          {progress.statuses[i]} · {progress.steps[i].done}/{progress.steps[i].total}
                         </div>
                       </div>
                     </div>
@@ -235,14 +257,14 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
                 <div className="stat-card">
                   <div style={{ color: t.secondary, fontSize: '9px', letterSpacing: '2px', marginBottom: '16px' }}>[ PROGRESS ]</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {['Week 1', 'Week 2', 'Week 3', 'Week 4'].map((w, i) => (
-                      <div key={w}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ color: t.secondary, fontSize: '10px' }}>{w}</span>
-                          <span style={{ color: t.secondary, fontSize: '10px' }}>{i === 0 ? '15%' : '0%'}</span>
+                    {lang.steps.map((step, i) => (
+                      <div key={step.name}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ color: t.secondary, fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{step.name}</span>
+                          <span style={{ color: t.secondary, fontSize: '10px' }}>{progress.steps[i].percent}%</span>
                         </div>
                         <div style={{ background: t.bgTertiary, height: '3px' }}>
-                          <div style={{ height: '100%', width: i === 0 ? '15%' : '0%', background: t.primary }} />
+                          <div style={{ height: '100%', width: `${progress.steps[i].percent}%`, background: t.primary, transition: 'width 0.5s' }} />
                         </div>
                       </div>
                     ))}
@@ -297,7 +319,9 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
       stepIndex={activeStep}
       language={lang.firstLanguage}
       earlierSteps={lang.steps.slice(0, activeStep).map(st => st.name)}
-      onLevelComplete={(done, total) => award(['first-level', ...(done === total ? ['step-cleared'] : [])])}
+      completedLevels={lang.steps[activeStep].levels.flatMap((l, i) => completed.includes(levelKey(lang.id, activeStep, l.id)) ? [i] : [])}
+      onLevelComplete={i => { markComplete(activeStep, i) }}
+      onEvent={(i, e) => { logEvent(user.email, lang.id, { ...e, stepIndex: activeStep, levelId: lang.steps[activeStep].levels[i].id }) }}
       onBack={() => setActiveStep(null)}
     />
   ) : (
@@ -308,19 +332,19 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
         {lang.steps.map((step, i) => (
           <div className="step-card" key={i} onClick={() => setActiveStep(i)} style={{ cursor: 'pointer' }}>
             <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-              <div style={{ width: '40px', height: '40px', border: `1px solid ${i === 0 ? t.primary : t.border}`, color: i === 0 ? t.primary : t.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
+              <div style={{ width: '40px', height: '40px', border: `1px solid ${progress.statuses[i] !== 'PENDING' ? t.primary : t.border}`, color: progress.statuses[i] !== 'PENDING' ? t.primary : t.secondary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
                 {String(i + 1).padStart(2, '0')}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <div style={{ color: t.primary, fontSize: '15px', letterSpacing: '1px' }}>{step.name}</div>
-                  <div style={{ fontSize: '10px', color: i === 0 ? t.primary : t.secondary, border: `1px solid ${i === 0 ? t.borderSecondary : t.border}`, padding: '3px 10px' }}>
-                    {i === 0 ? 'IN PROGRESS' : 'PENDING'} →
+                  <div style={{ fontSize: '10px', color: progress.statuses[i] !== 'PENDING' ? t.primary : t.secondary, border: `1px solid ${progress.statuses[i] !== 'PENDING' ? t.borderSecondary : t.border}`, padding: '3px 10px' }}>
+                    {progress.statuses[i]} · {progress.steps[i].done}/{progress.steps[i].total} →
                   </div>
                 </div>
                 <div style={{ color: t.secondary, fontSize: '12px', marginBottom: '12px' }}>{step.detail}</div>
                 <div style={{ background: t.bgTertiary, height: '4px', borderRadius: '2px', marginBottom: '12px' }}>
-                  <div style={{ height: '100%', width: i === 0 ? '15%' : '0%', background: t.primary, borderRadius: '2px', transition: 'width 0.5s' }} />
+                  <div style={{ height: '100%', width: `${progress.steps[i].percent}%`, background: t.primary, borderRadius: '2px', transition: 'width 0.5s' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {step.resources.map(r => (
@@ -344,7 +368,7 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
               {[
                 { label: 'TOTAL STEPS', value: String(lang.steps.length).padStart(2, '0'), desc: 'in your path' },
-                { label: 'COMPLETED', value: '00', desc: 'steps done' },
+                { label: 'COMPLETED', value: String(progress.completedSteps).padStart(2, '0'), desc: `steps done · ${progress.doneLevels}/${progress.totalLevels} levels` },
                 { label: 'CURRENT STREAK', value: `${streak}🔥`, desc: 'days in a row' },
               ].map(s => (
                 <div className="stat-card" key={s.label} style={{ textAlign: 'center' }}>
@@ -393,8 +417,8 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
                     <div style={{ color: t.secondary, fontSize: '11px' }}>{String(i + 1).padStart(2, '0')}</div>
                     <div style={{ color: t.primary, fontSize: '12px' }}>{step.name}</div>
                   </div>
-                  <div style={{ fontSize: '10px', color: i === 0 ? t.primary : t.secondary, border: `1px solid ${i === 0 ? t.borderSecondary : t.border}`, padding: '2px 10px' }}>
-                    {i === 0 ? 'IN PROGRESS' : 'PENDING'}
+                  <div style={{ fontSize: '10px', color: progress.statuses[i] !== 'PENDING' ? t.primary : t.secondary, border: `1px solid ${progress.statuses[i] !== 'PENDING' ? t.borderSecondary : t.border}`, padding: '2px 10px' }}>
+                    {progress.statuses[i]} · {progress.steps[i].done}/{progress.steps[i].total}
                   </div>
                 </div>
               ))}
@@ -403,7 +427,10 @@ export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
         )}
 
         {/* INTERVIEW VIEW */}
-        {activeNav === 'interview' && <Interview path={lang} onFinish={pct => award(interviewBadges(pct))} />}
+        {activeNav === 'interview' && <Interview path={lang} onFinish={(pct, level) => {
+          award(interviewBadges(pct))
+          logEvent(user.email, lang.id, { kind: 'interview', detail: { score: pct, level } })
+        }} />}
 
         {/* RESOURCES VIEW */}
         {activeNav === 'resources' && (

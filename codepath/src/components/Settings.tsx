@@ -208,7 +208,7 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
             </div>
 
             <div style={{ color: t.secondary, fontSize: '12px', lineHeight: 1.8, marginBottom: '24px', maxWidth: '480px' }}>
-              Want a different path? You can talk to EduBot again. Your current progress will be reset.
+              Want a different path? You can talk to EduBot again. Your progress on each path is saved, so you can switch back anytime.
             </div>
 
             <button

@@ -43,7 +43,7 @@ function overallPercent(scores: number[]) {
   return scores.length ? Math.round((scores.reduce((a, b) => a + b, 0) / (scores.length * 10)) * 100) : 0
 }
 
-export default function Interview({ path, onFinish }: { path: Language; onFinish?: (scorePercent: number) => void }) {
+export default function Interview({ path, onFinish }: { path: Language; onFinish?: (scorePercent: number, level: Level) => void }) {
   const { theme: t } = useTheme()
   const [stage, setStage] = useState<Stage>('setup')
   const [level, setLevel] = useState<Level>('beginner')
@@ -136,7 +136,7 @@ Respond ONLY with this JSON (no markdown, no backticks), with exactly ${QUESTION
       const parsed = parseJson<Report>(raw)
       setReport(parsed)
       setStage('report')
-      onFinish?.(overallPercent(questionScores(parsed, qs.length)))
+      onFinish?.(overallPercent(questionScores(parsed, qs.length)), level)
     } catch {
       setError('[ ERROR ] Could not evaluate the interview.')
     }
