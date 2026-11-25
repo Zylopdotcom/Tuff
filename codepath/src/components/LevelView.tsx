@@ -9,6 +9,8 @@ type Props = {
   totalLevels: number
   stepName: string
   language: string
+  // Topics the learner has already gone through, oldest first.
+  covered: string[]
   onBack: () => void
   onComplete: () => void
 }
@@ -63,7 +65,7 @@ const HINT_RULES: Record<number, string> = {
   3: 'Hint 3: show a short example that solves a DIFFERENT but similar problem, then explain in one sentence how it relates to this challenge.',
 }
 
-export default function LevelView({ level, levelIndex, totalLevels, stepName, language, onBack, onComplete }: Props) {
+export default function LevelView({ level, levelIndex, totalLevels, stepName, language, covered, onBack, onComplete }: Props) {
   const { theme: t } = useTheme()
   const [phase, setPhase] = useState<Phase>('loading')
   const [lesson, setLesson] = useState('')
@@ -80,7 +82,13 @@ export default function LevelView({ level, levelIndex, totalLevels, stepName, la
   const [assistError, setAssistError] = useState('')
   const [dots, setDots] = useState('')
 
-  const cacheKey = `codepath_level_${language}_${stepName}_${level.id}`
+  // v2: lessons now depend on the challenge and on what was covered before.
+  const cacheKey = `codepath_level_v2_${language}_${stepName}_${level.id}`
+
+  const coveredText = covered.length ? covered.join(', ') : 'nothing yet, this is their first level'
+  const learnerContext = `Topics the learner has already covered: ${coveredText}.
+The current level teaches: "${level.title}" (${level.concept}).
+Only expect the learner to know these topics and what this level teaches; never require anything from later levels.`
 
   useEffect(() => {
     const cached = localStorage.getItem(cacheKey)
@@ -120,6 +128,10 @@ export default function LevelView({ level, levelIndex, totalLevels, stepName, la
     try {
       const raw = await callAI(`
 Teach the concept: "${level.title}" (step: "${stepName}") for ${language}.
+${learnerContext}
+After the lesson the learner must solve this coding challenge: "${level.challenge}"
+The lesson must teach everything the challenge needs, using only what they already covered plus this level's concept. Do not solve the challenge in the lesson.
+The quiz question must be about this lesson; put any code in it on separate lines using \\n.
 
 Respond ONLY with this JSON (no markdown, no backticks):
 {
@@ -151,6 +163,7 @@ The correct field is the index (0-3) of the right answer.`, 400)
     try {
       const raw = await callAI(`
 The student is learning "${level.title}" in ${language}.
+${learnerContext}
 Challenge: "${level.challenge}"
 Student's code:
 \`\`\`
@@ -186,6 +199,7 @@ Be encouraging. Pass if the student made a genuine attempt and the logic is most
         : 'none'
       const raw = await callAI(`
 The student is learning "${level.title}" in ${language}.
+${learnerContext}
 Challenge: "${level.challenge}"
 Their current code:
 \`\`\`
@@ -220,6 +234,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
     try {
       const raw = await callAI(`
 The student is learning "${level.title}" in ${language}.
+${learnerContext}
 Challenge: "${level.challenge}"
 Their code:
 \`\`\`
@@ -311,7 +326,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
         {phase === 'quiz' && quiz && (
           <div style={{ maxWidth: '600px', animation: 'fadeIn 0.4s ease' }}>
             <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '16px' }}>[ KNOWLEDGE CHECK ]</div>
-            <div style={{ color: t.primary, fontSize: '16px', letterSpacing: '1px', marginBottom: '28px', lineHeight: 1.6 }}>{quiz.question}</div>
+            <div style={{ color: t.primary, fontSize: '16px', letterSpacing: '1px', marginBottom: '28px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{quiz.question}</div>
             {quiz.options.map((opt, i) => (
               <button
                 key={i}

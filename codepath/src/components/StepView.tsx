@@ -7,10 +7,11 @@ type Props = {
   step: Step
   stepIndex: number
   language: string
+  earlierSteps: string[]
   onBack: () => void
 }
 
-export default function StepView({ step, stepIndex, language, onBack }: Props) {
+export default function StepView({ step, stepIndex, language, earlierSteps, onBack }: Props) {
   const { theme: t } = useTheme()
   const [activeLevel, setActiveLevel] = useState<number | null>(null)
   const [completedLevels, setCompletedLevels] = useState<number[]>([])
@@ -23,6 +24,7 @@ export default function StepView({ step, stepIndex, language, onBack }: Props) {
         totalLevels={step.levels.length}
         stepName={step.name}
         language={language}
+        covered={[...earlierSteps.map(name => `${name} (earlier step)`), ...step.levels.slice(0, activeLevel).map(l => l.title)]}
         onBack={() => setActiveLevel(null)}
         onComplete={() => {
           setCompletedLevels(prev => [...prev, activeLevel])

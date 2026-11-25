@@ -241,6 +241,7 @@ export default function Dashboard({ user, onSettings }: Props) {
       step={lang.steps[activeStep]}
       stepIndex={activeStep}
       language={lang.firstLanguage}
+      earlierSteps={lang.steps.slice(0, activeStep).map(st => st.name)}
       onBack={() => setActiveStep(null)}
     />
   ) : (
