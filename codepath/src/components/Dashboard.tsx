@@ -70,7 +70,8 @@ export default function Dashboard({ user, onSettings }: Props) {
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
         @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         .cp-cursor { display:inline-block; width:9px; height:16px; background:${t.primary}; animation:blink 1s infinite; vertical-align:middle; margin-left:3px; }
-        .nav-icon { width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:8px; font-size:18px; transition:background 0.2s; color:${t.secondary}; }
+        .nav-icon { width:64px; padding:8px 0 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; border-radius:8px; font-size:18px; transition:background 0.2s; color:${t.secondary}; border:1px solid transparent; }
+        .nav-label { font-size:9px; letter-spacing:0.5px; line-height:1; text-transform:uppercase; }
         .nav-icon:hover { background:${t.border}; color:${t.primary}; }
         .nav-icon.active { background:${t.border}; color:${t.primary}; border:1px solid ${t.borderSecondary}; }
         .step-card { background:${t.bgSecondary}; border:1px solid ${t.border}; padding:20px; transition:border-color 0.2s; animation:fadeIn 0.4s ease; }
@@ -89,14 +90,18 @@ export default function Dashboard({ user, onSettings }: Props) {
           { id: 'roadmap', icon: '◈', label: 'Roadmap' },
           { id: 'stats', icon: '▤', label: 'Stats' },
           { id: 'resources', icon: '◎', label: 'Resources' },
-          { id: 'interview', icon: '◇', label: 'Mock Interview' },
+          { id: 'interview', icon: '◇', label: 'Mock Interview', short: 'Interview' },
         ].map(n => (
           <div key={n.id} className={`nav-icon ${activeNav === n.id ? 'active' : ''}`} onClick={() => setActiveNav(n.id)} title={n.label}>
-            {n.icon}
+            <span>{n.icon}</span>
+            <span className="nav-label">{'short' in n ? n.short : n.label}</span>
           </div>
         ))}
         <div style={{ height: '16px' }} />
-        <div className="nav-icon" style={{ fontSize: '14px' }} onClick={onSettings} title="Settings">⚙</div>
+        <div className="nav-icon" onClick={onSettings} title="Settings">
+          <span style={{ fontSize: '14px' }}>⚙</span>
+          <span className="nav-label">Settings</span>
+        </div>
       </div>
 
       {/* Main content */}
