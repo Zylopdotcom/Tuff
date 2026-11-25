@@ -17,6 +17,8 @@ type User = {
   streak?: number
   last_login?: string
   login_dates?: string[]
+  badges?: string[]
+  completed_levels?: string[]
 }
 
 export default function App() {
@@ -51,11 +53,14 @@ export default function App() {
     setScreen('dashboard')
   }
 
+  // Builds on the latest user, so several updates in a row (e.g. progress, then a badge) all keep their changes.
   function handleUserUpdate(updates: Partial<User>) {
-    if (!user) return
-    const updated = { ...user, ...updates }
-    localStorage.setItem('codepath_user', JSON.stringify(updated))
-    setUser(updated)
+    setUser(prev => {
+      if (!prev) return prev
+      const updated = { ...prev, ...updates }
+      localStorage.setItem('codepath_user', JSON.stringify(updated))
+      return updated
+    })
   }
 
   function handleLogout() {
@@ -76,7 +81,7 @@ export default function App() {
       {screen === 'chat' && <ChatBot onBack={() => setScreen(user ? 'settings' : 'landing')} onComplete={handleChatComplete} />}
       {screen === 'signup' && <Signup language={language} onComplete={handleUserReady} />}
       {screen === 'login' && <Login onBack={() => setScreen('landing')} onComplete={handleUserReady} />}
-      {screen === 'dashboard' && user && <Dashboard user={user} onSettings={() => setScreen('settings')} />}
+      {screen === 'dashboard' && user && <Dashboard user={user} onSettings={() => setScreen('settings')} onUserUpdate={handleUserUpdate} />}
       {screen === 'settings' && user && (
         <Settings
           user={user}

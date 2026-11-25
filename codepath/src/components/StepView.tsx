@@ -8,13 +8,16 @@ type Props = {
   stepIndex: number
   language: string
   earlierSteps: string[]
+  // Indexes of the levels in this step the learner has completed (saved progress).
+  completedLevels: number[]
+  onLevelComplete: (levelIndex: number) => void
+  onEvent: (levelIndex: number, e: { kind: 'quiz' | 'review' | 'hint' | 'error_explained'; correct?: boolean; detail?: Record<string, unknown> }) => void
   onBack: () => void
 }
 
-export default function StepView({ step, stepIndex, language, earlierSteps, onBack }: Props) {
+export default function StepView({ step, stepIndex, language, earlierSteps, completedLevels, onLevelComplete, onEvent, onBack }: Props) {
   const { theme: t } = useTheme()
   const [activeLevel, setActiveLevel] = useState<number | null>(null)
-  const [completedLevels, setCompletedLevels] = useState<number[]>([])
 
   if (activeLevel !== null) {
     return (
@@ -25,9 +28,10 @@ export default function StepView({ step, stepIndex, language, earlierSteps, onBa
         stepName={step.name}
         language={language}
         covered={[...earlierSteps.map(name => `${name} (earlier step)`), ...step.levels.slice(0, activeLevel).map(l => l.title)]}
+        onEvent={e => onEvent(activeLevel, e)}
         onBack={() => setActiveLevel(null)}
         onComplete={() => {
-          setCompletedLevels(prev => [...prev, activeLevel])
+          onLevelComplete(activeLevel)
           setActiveLevel(null)
         }}
       />
