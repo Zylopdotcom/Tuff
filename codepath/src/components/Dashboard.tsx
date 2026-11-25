@@ -1,4 +1,5 @@
 import StepView from './StepView'
+import Interview from './Interview'
 import { useState, useEffect } from 'react'
 import { resolvePath } from '../data/languages'
 import { useTheme } from '../lib/ThemeContext'
@@ -88,6 +89,7 @@ export default function Dashboard({ user, onSettings }: Props) {
           { id: 'roadmap', icon: '◈', label: 'Roadmap' },
           { id: 'stats', icon: '▤', label: 'Stats' },
           { id: 'resources', icon: '◎', label: 'Resources' },
+          { id: 'interview', icon: '◇', label: 'Mock Interview' },
         ].map(n => (
           <div key={n.id} className={`nav-icon ${activeNav === n.id ? 'active' : ''}`} onClick={() => setActiveNav(n.id)} title={n.label}>
             {n.icon}
@@ -330,6 +332,9 @@ export default function Dashboard({ user, onSettings }: Props) {
             </div>
           </div>
         )}
+
+        {/* INTERVIEW VIEW */}
+        {activeNav === 'interview' && <Interview path={lang} />}
 
         {/* RESOURCES VIEW */}
         {activeNav === 'resources' && (

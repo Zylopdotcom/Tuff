@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from '../lib/ThemeContext'
 import Editor from '@monaco-editor/react'
 import type { Level } from '../data/languages'
+import { parseJson, clip } from '../lib/ai'
 
 type Props = {
   level: Level
@@ -23,19 +24,6 @@ const MAX_HINTS = 3
 // Keeps requests well inside the AI proxy's size limits.
 const MAX_CODE_CHARS = 6000
 const MAX_ERROR_CHARS = 3000
-
-// The model sometimes wraps JSON in code fences or adds a sentence around it.
-function parseJson<T>(raw: string): T {
-  const cleaned = raw.replace(/```json|```/g, '').trim()
-  const start = cleaned.indexOf('{')
-  const end = cleaned.lastIndexOf('}')
-  if (start === -1 || end === -1) throw new Error('No JSON object in reply')
-  return JSON.parse(cleaned.slice(start, end + 1)) as T
-}
-
-function clip(text: string, max: number) {
-  return text.length > max ? text.slice(0, max) + '\n[...truncated]' : text
-}
 
 // Step names say more than the path language for some steps, for example the
 // Linux step of the cybersecurity path or the HTML step of the web path.
