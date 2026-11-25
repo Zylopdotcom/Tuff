@@ -40,9 +40,9 @@ export type LearningEvent = {
 }
 
 // Records one learning attempt for the knowledge tracing dataset. Never blocks or breaks the UI.
-export async function logEvent(email: string, pathId: string, e: LearningEvent) {
+export async function logEvent(userId: string, pathId: string, e: LearningEvent) {
   const { error } = await supabase.from('learning_events').insert({
-    user_email: email,
+    user_id: userId,
     path: pathId,
     step_index: e.stepIndex ?? null,
     level_id: e.levelId ?? null,

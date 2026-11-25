@@ -3,20 +3,15 @@ import { useTheme } from '../lib/ThemeContext'
 import { themes } from '../lib/themes'
 import { supabase } from '../lib/supabase'
 import { resolvePath } from '../data/languages'
+import type { User } from '../lib/profile'
 
-type User = {
-  username: string
-  email: string
-  language: string
-  avatar_url?: string
-}
 
 type Props = {
   user: User
   onBack: () => void
   onRetakeQuiz: () => void
   onDeleteAccount: () => void
-  onUserUpdate: (user: User) => void
+  onUserUpdate: (updates: Partial<User>) => void
   onLogout: () => void
 }
 
@@ -39,7 +34,7 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
     const { error } = await supabase
       .from('users')
       .update({ username: trimmed })
-      .eq('email', user.email)
+      .eq('id', user.id)
     setSaving(false)
     if (!error) onUserUpdate({ ...user, username: trimmed })
     setSaveMsg(error ? '[ ERROR ] Could not save.' : '[ SAVED ]')
@@ -51,7 +46,8 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
     if (!file) return
     setUploading(true)
     const fileExt = file.name.split('.').pop()
-    const fileName = `${user.email}_${Date.now()}.${fileExt}`
+    // Each user may only write inside their own folder (storage policy).
+    const fileName = `${user.id}/avatar_${Date.now()}.${fileExt}`
     const { data, error } = await supabase.storage
       .from('avatars')
       .upload(fileName, file, { upsert: true })
@@ -60,7 +56,7 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
         .from('avatars')
         .getPublicUrl(fileName)
       const url = urlData.publicUrl
-      await supabase.from('users').update({ avatar_url: url }).eq('email', user.email)
+      await supabase.from('users').update({ avatar_url: url }).eq('id', user.id)
       setAvatarUrl(url)
       onUserUpdate({ ...user, avatar_url: url })
     }
@@ -70,11 +66,17 @@ export default function Settings({ user, onBack, onRetakeQuiz, onDeleteAccount, 
   async function handleDeleteAccount() {
     setDeleting(true)
     setDeleteError('')
-    // Deletes go through a database function: the users table has no DELETE policy,
-    // so a direct .delete() is silently blocked by row level security.
-    const { data: deleted, error } = await supabase.rpc('delete_account', { p_email: user.email })
+    // Profile pictures can only be removed through the storage service, so delete the
+    // user's own folder first; a failure here must not stop the account deletion.
+    const { data: files } = await supabase.storage.from('avatars').list(user.id)
+    if (files?.length) {
+      await supabase.storage.from('avatars').remove(files.map(f => `${user.id}/${f.name}`))
+    }
+    // A database function deletes the signed-in user's login; their profile, progress
+    // and attempt log are removed with it.
+    const { error } = await supabase.rpc('delete_account')
     setDeleting(false)
-    if (error || !deleted) {
+    if (error) {
       setDeleteError('[ ERROR ] Could not delete your account. Try again.')
       return
     }
