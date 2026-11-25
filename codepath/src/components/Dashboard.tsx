@@ -1,9 +1,10 @@
 import StepView from './StepView'
 import Interview from './Interview'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { resolvePath } from '../data/languages'
 import { useTheme } from '../lib/ThemeContext'
 import { supabase } from '../lib/supabase'
+import { BADGES, badgeById, streakBadges, interviewBadges } from '../lib/badges'
 
 type User = {
   username: string
@@ -13,11 +14,13 @@ type User = {
   streak?: number
   last_login?: string
   login_dates?: string[]
+  badges?: string[]
 }
 
 type Props = {
   user: User
   onSettings: () => void
+  onUserUpdate: (updates: Partial<User>) => void
 }
 
 function getToday() {
@@ -34,7 +37,7 @@ function getLast90Days() {
   return days
 }
 
-export default function Dashboard({ user, onSettings }: Props) {
+export default function Dashboard({ user, onSettings, onUserUpdate }: Props) {
   const { theme: t } = useTheme()
   const lang = resolvePath(user.language)
   const [activeNav, setActiveNav] = useState('home')
@@ -43,7 +46,36 @@ export default function Dashboard({ user, onSettings }: Props) {
   const [loginDates, setLoginDates] = useState<string[]>(user.login_dates || [])
   const [activeStep, setActiveStep] = useState<number | null>(null)
 
-  useEffect(() => { updateStreak() }, [])
+  const [badges, setBadges] = useState<string[]>(user.badges || [])
+  // Mirrors `badges` so awards made in quick succession never see a stale list.
+  const badgesRef = useRef<string[]>(user.badges || [])
+  const [toasts, setToasts] = useState<string[]>([])
+
+  // Awards any badges not earned yet, saves them, and queues an unlock pop-up for each.
+  async function award(ids: string[]) {
+    const fresh = ids.filter(id => badgeById(id) && !badgesRef.current.includes(id))
+    if (fresh.length === 0) return
+    const next = [...badgesRef.current, ...fresh]
+    badgesRef.current = next
+    setBadges(next)
+    setToasts(prev => [...prev, ...fresh])
+    onUserUpdate({ badges: next })
+    const { error } = await supabase.from('users').update({ badges: next }).eq('email', user.email)
+    if (error) console.error('Failed to save badges:', error.message)
+  }
+
+  // Show each unlock pop-up for a few seconds, one at a time.
+  useEffect(() => {
+    if (toasts.length === 0) return
+    const timer = setTimeout(() => setToasts(prev => prev.slice(1)), 3500)
+    return () => clearTimeout(timer)
+  }, [toasts])
+
+  useEffect(() => {
+    // Everyone on the dashboard got their path from EduBot; existing streaks count too.
+    award(['pathfinder', ...streakBadges(user.streak || 0)])
+    updateStreak()
+  }, [])
 
   async function updateStreak() {
     const today = getToday()
@@ -58,6 +90,7 @@ export default function Dashboard({ user, onSettings }: Props) {
     await supabase.from('users').update({ streak: newStreak, last_login: today, login_dates: newDates }).eq('email', user.email)
     setStreak(newStreak)
     setLoginDates(newDates)
+    award(streakBadges(newStreak))
   }
 
   const days = getLast90Days()
@@ -113,8 +146,23 @@ export default function Dashboard({ user, onSettings }: Props) {
             <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '4px' }}>&gt;&gt; {activeNav.toUpperCase()}</div>
             <div style={{ color: t.primary, fontSize: '20px', letterSpacing: '2px' }}>Welcome back, {user.username.toUpperCase()}<span className="cp-cursor" /></div>
           </div>
-          <div onClick={onSettings} style={{ width: '48px', height: '48px', borderRadius: '50%', background: t.border, border: `2px solid ${t.borderSecondary}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.primary, fontSize: '16px', overflow: 'hidden', cursor: 'pointer' }}>
-            {avatarUrl ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : user.username[0].toUpperCase()}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {badges.length > 0 && (
+              <div onClick={() => setActiveNav('stats')} title="Your badges" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                {badges.slice(-4).reverse().map(id => {
+                  const b = badgeById(id)
+                  return b && (
+                    <div key={id} title={`${b.name}: ${b.how}`} style={{ width: '32px', height: '32px', borderRadius: '50%', background: t.bgSecondary, border: `1px solid ${t.borderSecondary}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>
+                      {b.icon}
+                    </div>
+                  )
+                })}
+                {badges.length > 4 && <div style={{ color: t.secondary, fontSize: '11px', letterSpacing: '1px' }}>+{badges.length - 4}</div>}
+              </div>
+            )}
+            <div onClick={onSettings} style={{ width: '48px', height: '48px', borderRadius: '50%', background: t.border, border: `2px solid ${t.borderSecondary}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.primary, fontSize: '16px', overflow: 'hidden', cursor: 'pointer' }}>
+              {avatarUrl ? <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : user.username[0].toUpperCase()}
+            </div>
           </div>
         </div>
 
@@ -249,6 +297,7 @@ export default function Dashboard({ user, onSettings }: Props) {
       stepIndex={activeStep}
       language={lang.firstLanguage}
       earlierSteps={lang.steps.slice(0, activeStep).map(st => st.name)}
+      onLevelComplete={(done, total) => award(['first-level', ...(done === total ? ['step-cleared'] : [])])}
       onBack={() => setActiveStep(null)}
     />
   ) : (
@@ -305,6 +354,21 @@ export default function Dashboard({ user, onSettings }: Props) {
                 </div>
               ))}
             </div>
+            <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '16px' }}>[ BADGES · {badges.length}/{BADGES.length} ]</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', marginBottom: '32px' }}>
+              {BADGES.map(b => {
+                const earned = badges.includes(b.id)
+                return (
+                  <div key={b.id} className="stat-card" style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '14px 16px', opacity: earned ? 1 : 0.45, borderColor: earned ? t.borderSecondary : t.border }}>
+                    <div style={{ fontSize: '24px', filter: earned ? 'none' : 'grayscale(1)' }}>{b.icon}</div>
+                    <div>
+                      <div style={{ color: earned ? t.primary : t.secondary, fontSize: '12px', letterSpacing: '1px', marginBottom: '2px' }}>{b.name}</div>
+                      <div style={{ color: t.secondary, fontSize: '10px', lineHeight: 1.5 }}>{earned ? 'Earned' : b.how}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
             <div style={{ color: t.secondary, fontSize: '10px', letterSpacing: '3px', marginBottom: '16px' }}>[ ACTIVITY CALENDAR ]</div>
             <div className="stat-card" style={{ marginBottom: '24px' }}>
               <div style={{ display: 'flex', gap: '3px' }}>
@@ -339,7 +403,7 @@ export default function Dashboard({ user, onSettings }: Props) {
         )}
 
         {/* INTERVIEW VIEW */}
-        {activeNav === 'interview' && <Interview path={lang} />}
+        {activeNav === 'interview' && <Interview path={lang} onFinish={pct => award(interviewBadges(pct))} />}
 
         {/* RESOURCES VIEW */}
         {activeNav === 'resources' && (
@@ -372,6 +436,20 @@ export default function Dashboard({ user, onSettings }: Props) {
         )}
 
       </div>
+
+      {toasts.length > 0 && (() => {
+        const b = badgeById(toasts[0])
+        return b && (
+          <div key={toasts[0]} role="status" style={{ position: 'fixed', right: '24px', bottom: '24px', zIndex: 50, display: 'flex', alignItems: 'center', gap: '14px', background: t.bgSecondary, border: `1px solid ${t.primary}`, padding: '14px 20px', boxShadow: `0 0 24px ${t.primary}33`, animation: 'fadeIn 0.3s ease' }}>
+            <div style={{ fontSize: '30px' }}>{b.icon}</div>
+            <div>
+              <div style={{ color: t.secondary, fontSize: '9px', letterSpacing: '3px', marginBottom: '4px' }}>BADGE UNLOCKED</div>
+              <div style={{ color: t.primary, fontSize: '14px', letterSpacing: '1px' }}>{b.name}</div>
+              <div style={{ color: t.secondary, fontSize: '10px', marginTop: '2px' }}>{b.how}</div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

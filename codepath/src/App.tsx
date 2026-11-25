@@ -17,6 +17,7 @@ type User = {
   streak?: number
   last_login?: string
   login_dates?: string[]
+  badges?: string[]
 }
 
 export default function App() {
@@ -76,7 +77,7 @@ export default function App() {
       {screen === 'chat' && <ChatBot onBack={() => setScreen(user ? 'settings' : 'landing')} onComplete={handleChatComplete} />}
       {screen === 'signup' && <Signup language={language} onComplete={handleUserReady} />}
       {screen === 'login' && <Login onBack={() => setScreen('landing')} onComplete={handleUserReady} />}
-      {screen === 'dashboard' && user && <Dashboard user={user} onSettings={() => setScreen('settings')} />}
+      {screen === 'dashboard' && user && <Dashboard user={user} onSettings={() => setScreen('settings')} onUserUpdate={handleUserUpdate} />}
       {screen === 'settings' && user && (
         <Settings
           user={user}

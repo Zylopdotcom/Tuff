@@ -31,7 +31,19 @@ Write plain text only (no markdown, asterisks or code fences). Put code on its o
 Always respond in the exact JSON format requested.`
 }
 
-export default function Interview({ path }: { path: Language }) {
+// Overall percentage from the per-question scores, each clamped to 0-10.
+// Computed here rather than by the model, which is unreliable at arithmetic.
+function questionScores(report: Report, count: number) {
+  return Array.from({ length: count }, (_, i) => {
+    const s = Number(report.questions?.[i]?.score)
+    return Number.isFinite(s) ? Math.max(0, Math.min(10, s)) : 0
+  })
+}
+function overallPercent(scores: number[]) {
+  return scores.length ? Math.round((scores.reduce((a, b) => a + b, 0) / (scores.length * 10)) * 100) : 0
+}
+
+export default function Interview({ path, onFinish }: { path: Language; onFinish?: (scorePercent: number) => void }) {
   const { theme: t } = useTheme()
   const [stage, setStage] = useState<Stage>('setup')
   const [level, setLevel] = useState<Level>('beginner')
@@ -121,20 +133,18 @@ Respond ONLY with this JSON (no markdown, no backticks), with exactly ${QUESTION
   "improve": ["up to 3 short points"]
 }`,
       }], 1000)
-      setReport(parseJson<Report>(raw))
+      const parsed = parseJson<Report>(raw)
+      setReport(parsed)
       setStage('report')
+      onFinish?.(overallPercent(questionScores(parsed, qs.length)))
     } catch {
       setError('[ ERROR ] Could not evaluate the interview.')
     }
     setLoading(false)
   }
 
-  // Computed here rather than by the model, which is unreliable at arithmetic.
-  const scores = report ? questions.map((_, i) => {
-    const s = Number(report.questions?.[i]?.score)
-    return Number.isFinite(s) ? Math.max(0, Math.min(10, s)) : 0
-  }) : []
-  const overall = scores.length ? Math.round((scores.reduce((a, b) => a + b, 0) / (scores.length * 10)) * 100) : 0
+  const scores = report ? questionScores(report, questions.length) : []
+  const overall = overallPercent(scores)
   const scoreColor = (pct: number) => pct >= 70 ? '#00ff88' : pct >= 40 ? '#ffb02e' : '#ff6b6b'
 
   const button = (primary: boolean) => ({
